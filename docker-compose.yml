@@ -1,0 +1,16 @@
+version: '3.8'
+
+services:
+  mcp-telegram-editor:
+    build: .
+    container_name: mcp-telegram-editor
+    restart: unless-stopped
+    ports:
+      - "9001:9000"
+    volumes:
+      - .:/app
+    deploy:
+      resources:
+        limits:
+          cpus: '0.50'
+          memory: 256M

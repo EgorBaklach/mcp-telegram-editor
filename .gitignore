@@ -1,0 +1,7 @@
+/.phpunit.cache
+/.backup/*
+/vendor
+/logs
+.idea
+.zed
+.env

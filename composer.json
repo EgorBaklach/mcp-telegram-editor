@@ -1,0 +1,50 @@
+{
+  "name": "egorbaklach/microbe",
+  "type": "project",
+  "description": "Microbe Framework - fully modernized for PHP 8.3",
+  "license": "MIT",
+  "require": {
+    "php": ">=8.2",
+    "league/container": "^4.2",
+    "league/route": "^5.1",
+    "laminas/laminas-diactoros": "^3.3",
+    "laminas/laminas-httphandlerrunner": "^2.10",
+    "laminas/laminas-config-aggregator": "^1.13",
+    "symfony/console": "^7.0",
+    "symfony/dotenv": "^7.0",
+    "symfony/process": "^7.0",
+    "mcp/sdk": "^0.6",
+    "nyholm/psr7": "^1.8",
+    "nyholm/psr7-server": "^1.1",
+    "ext-pdo": "*"
+  },
+  "require-dev": {
+    "phpunit/phpunit": "^11.0"
+  },
+  "autoload": {
+    "psr-4": {
+      "App\\": "src/App",
+      "Cli\\": "src/Cli",
+      "Framework\\": "src/Framework",
+      "Magistrale\\": "src/Magistrale"
+    }
+  },
+  "autoload-dev": {
+    "psr-4": {
+      "Tests\\": "tests/"
+    }
+  },
+  "config": {
+    "preferred-install": "dist",
+    "sort-packages": true,
+    "optimize-autoloader": true,
+    "allow-plugins": {
+      "php-http/discovery": true
+    },
+    "platform": {
+      "php": "8.3"
+    }
+  },
+  "minimum-stability": "stable",
+  "prefer-stable": true
+}
