@@ -9,8 +9,36 @@ services:
       - "9001:9000"
     volumes:
       - .:/app
+    depends_on:
+      - db
     deploy:
       resources:
         limits:
           cpus: '0.50'
           memory: 256M
+
+  db:
+    image: postgres:16-alpine
+    container_name: mcp-telegram-editor-db
+    restart: unless-stopped
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_DB: mcp_editor
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: pg_pass_editor_secret_99
+    command: >
+      postgres
+      -c shared_buffers=16MB
+      -c max_connections=5
+      -c work_mem=2MB
+      -c maintenance_work_mem=8MB
+      -c max_wal_size=128MB
+      -c min_wal_size=32MB
+      -c fsync=off
+      -c logging_collector=off
+    deploy:
+      resources:
+        limits:
+          cpus: '0.30'
+          memory: 128M

@@ -15,7 +15,8 @@ return new DefinitionAggregate([
         'router'   => LeagueRouter::class
     ]),
     new Definition('commands', [
-        HelloWorldCommand::class
+        HelloWorldCommand::class,
+        \Cli\Commands\MigrateCommand::class
     ]),
     new Definition('mcp.settings', [
         'server_name' => 'mcp-telegram-editor',
