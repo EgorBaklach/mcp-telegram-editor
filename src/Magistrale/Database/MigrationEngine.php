@@ -45,87 +45,58 @@ class MigrationEngine
         return static::$init ? $this->{self::prefix.$name}(...$attributes) : throw new RuntimeException("Need to run method build first!");
     }
 
-    private function query()
-    {
-        return $this->capsule::table('migrations');
-    }
-
     private function run_up(): bool
     {
-
-
-        $this->logger->info(json_encode(Glob::glob('database/migrations/*.php', Glob::GLOB_BRACE, true)));
-
-
-
-        return true;
-
-        /*// 1. Сканируем директорию миграций через Glob
-        $files = Glob::glob('database/migrations/*.php', Glob::GLOB_BRACE, true);
-        sort($files);
-        $files = array_map('realpath', $files);
-        $files = array_filter($files);
-
-        // 2. Получаем последнюю выполненную миграцию по батчу
-        $lastMigrationPath = (clone $this->queryBuilder)->orderBy('batch', 'desc')->orderBy('id', 'desc')->value('migration');
-
-        $pendingFiles = [];
-        if ($lastMigrationPath === null) {
-            // Если в БД нет миграций, то все файлы считаются новыми
-            $pendingFiles = $files;
-        } else {
-            $lastIndex = array_search(realpath($lastMigrationPath), $files);
-            if ($lastIndex === false) {
-                // Резервный вариант: если файл последней миграции переименован/удален на диске,
-                // фильтруем по полному списку выполненных
-                $executed = (clone $this->queryBuilder)->pluck('migration')->toArray();
-                foreach ($files as $file) {
-                    if (!in_array($file, $executed)) {
-                        $pendingFiles[] = $file;
-                    }
-                }
-            } else {
-                // Собираем только файлы, идущие по списку строго после последней выполненной
-                $pendingFiles = array_slice($files, $lastIndex + 1);
-            }
-        }
-
-        if (empty($pendingFiles)) {
+        if (empty($files = $this->getPendingFiles())) {
             $this->logger->info('База данных в актуальном состоянии. Нет новых миграций.');
             return true;
         }
 
-        $batch = (clone $this->queryBuilder)->max('batch') ?? 0;
-        $batch++;
+        $batch = ($this->capsule::table('migrations')->max('batch') ?? 0) + 1;
 
-        // Запуск миграций
-        foreach ($pendingFiles as $file) {
-            $name = basename($file);
-            $this->logger->comment("Применение миграции {$name}... ");
-
-            try {
-                $migrationInstance = require $file;
-
-                if (is_object($migrationInstance) && method_exists($migrationInstance, 'up')) {
-                    $migrationInstance->up();
-                } else {
-                    throw new RuntimeException("Файл миграции должен возвращать объект с методом up().");
-                }
-
-                (clone $this->queryBuilder)->insert([
-                    'migration' => $file,
-                    'batch'     => $batch,
-                ]);
-
-                $this->logger->info("Миграция {$name} успешно выполнена.");
-            } catch (Throwable $e) {
-                $this->logger->error("Ошибка при выполнении миграции {$name}: {$e->getMessage()}");
-                return false;
-            }
+        foreach ($files as $file) {
+            if (!$this->applyMigration($file, $batch)) return false;
         }
 
         $this->logger->info('Все новые миграции успешно применены!');
-        return true;*/
+
+        return true;
+    }
+
+    private function getPendingFiles(): array
+    {
+        $files = Glob::glob('database/migrations/*.php', Glob::GLOB_BRACE, true);
+
+        if ($last = $this->capsule::table('migrations')->orderByDesc('batch')->orderByDesc('id')->value('migration')) {
+            if (($index = array_search($last, $files)) !== false) {
+                return array_slice($files, $index + 1);
+            }
+        }
+
+        return $files;
+    }
+
+    private function applyMigration(string $file, int $batch): bool
+    {
+        $this->logger->comment("Применение миграции {$file}... ");
+
+        try {
+            if (!is_object($instance = require $file) || !method_exists($instance, 'up')) {
+                throw new RuntimeException("Файл миграции {$file} должен возвращать анонимный класс с методом up()");
+            }
+
+            $instance->up();
+
+            $this->capsule::table('migrations')->insert(['migration' => $file, 'batch' => $batch]);
+
+            $this->logger->info("Миграция {$file} успешно выполнена.");
+
+            return true;
+        } catch (Throwable $e) {
+            $this->logger->error("Ошибка при выполнении миграции {$file}: {$e->getMessage()}");
+
+            return false;
+        }
     }
 
     /**
