@@ -60,4 +60,25 @@ class MigrationEngineTest extends TestCase
         $countSecond = $this->capsule::table('migrations')->count();
         $this->assertEquals($count, $countSecond, 'Количество записей в БД не должно измениться при повторном запуске, так как новых миграций нет');
     }
+
+    #[TestDox('Проверяет корректность выполнения отката миграций через run_down()')]
+    public function testRunDownExecutesCorrectly(): void
+    {
+        $this->engine->build(new \Symfony\Component\Console\Output\NullOutput());
+        $this->capsule::schema()->dropIfExists('test_records');
+        $this->capsule::table('migrations')->truncate();
+
+        // 1. Накатываем миграции
+        $this->assertTrue($this->engine->up(), 'Миграции должны успешно накатиться');
+        $this->assertTrue($this->capsule::schema()->hasTable('test_records'), 'Таблица test_records должна создаться после up()');
+        $this->assertGreaterThan(0, $this->capsule::table('migrations')->count());
+
+        // 2. Откатываем миграции (последний батч)
+        $result = $this->engine->down(null);
+        $this->assertTrue($result, 'Метод run_down() должен вернуть true');
+        
+        // 3. Проверяем удаление таблиц и записей
+        $this->assertFalse($this->capsule::schema()->hasTable('test_records'), 'Таблица test_records должна быть удалена после down()');
+        $this->assertEquals(0, $this->capsule::table('migrations')->count(), 'Записи о миграциях должны быть удалены из БД');
+    }
 }

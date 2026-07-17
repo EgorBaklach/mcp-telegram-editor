@@ -98,57 +98,50 @@ class MigrationEngine
      */
     private function run_down(string|int|null $target): bool
     {
-        $this->logger->info($target);
-
-        return true;
-
-        /*$query = clone $this->queryBuilder;
-
-        if ($target === null) {
-            $lastBatch = (clone $this->queryBuilder)->max('batch');
-            if ($lastBatch === null) {
-                $this->logger->info('Нет записей о выполненных миграциях.');
-                return true;
-            }
-            $migrationsToRollback = $query->where('batch', $lastBatch)->orderBy('id', 'desc')->get();
-        } elseif ($target === 'all') {
-            $migrationsToRollback = $query->orderBy('id', 'desc')->get();
-        } else {
-            $migrationsToRollback = $query->where('id', (int)$target)->get();
+        if(($migrations = $this->getMigrationsToRollback($target))->isEmpty())
+        {
+            $this->logger->info('Не найдено миграций для отката.'); return true;
         }
 
-        if ($migrationsToRollback->isEmpty()) {
-            $this->logger->info('Не найдено миграций для отката.');
-            return true;
+        foreach($migrations as $row)
+        {
+            if(!$this->rollbackMigration($row)) return false;
         }
 
-        foreach ($migrationsToRollback as $row) {
-            $file = $row->migration;
-            $name = basename($file);
-            $this->logger->comment("Откат миграции {$name} (ID: {$row->id})... ");
+        $this->logger->info('Откат миграций успешно завершен!'); return true;
+    }
 
-            if (!file_exists($file)) {
-                $this->logger->error("Файл миграции {$name} не найден по пути {$file}. Отмена операции.");
-                return false;
-            }
+    private function getMigrationsToRollback(string|int|null $target): \Illuminate\Support\Collection
+    {
+        $query = $this->capsule::table('migrations')->orderByDesc('id');
 
-            try {
-                $migrationInstance = require $file;
-                if (is_object($migrationInstance) && method_exists($migrationInstance, 'down')) {
-                    $migrationInstance->down();
-                } else {
-                    throw new RuntimeException("Файл миграции должен возвращать объект с методом down().");
-                }
+        if($target === null) return ($lastBatch = $this->capsule::table('migrations')->max('batch')) ? $query->where('batch', $lastBatch)->get() : new \Illuminate\Support\Collection();
 
-                (clone $this->queryBuilder)->where('id', $row->id)->delete();
-                $this->logger->info("Миграция {$name} успешно откачена.");
-            } catch (Throwable $e) {
-                $this->logger->error("Ошибка при откате миграции {$name}: {$e->getMessage()}");
-                return false;
-            }
+        if($target === 'all') return $query->get();
+
+        return $query->where('id', (int)$target)->get();
+    }
+
+    private function rollbackMigration(object $row): bool
+    {
+        $this->logger->comment("Откат миграции {$row->migration} (ID: {$row->id})... ");
+
+        if(!file_exists($row->migration))
+        {
+            $this->logger->error("Файл миграции {$row->migration} не найден. Отмена операции."); return false;
         }
 
-        $this->logger->info('Откат миграций успешно завершен!');
-        return true;*/
+        try
+        {
+            if(!is_object($instance = require $row->migration) || !method_exists($instance, 'down')) throw new RuntimeException("Файл миграции должен возвращать объект с методом down()");
+
+            $instance->down(); $this->capsule::table('migrations')->where('id', $row->id)->delete();
+
+            $this->logger->info("Миграция {$row->migration} успешно откачена."); return true;
+        }
+        catch(Throwable $e)
+        {
+            $this->logger->error("Ошибка при откате миграции {$row->migration}: {$e->getMessage()}"); return false;
+        }
     }
 }
