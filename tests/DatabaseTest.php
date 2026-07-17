@@ -23,6 +23,14 @@ class DatabaseTest extends TestCase
 
         // Получаем Capsule для прямой работы
         $this->capsule = $container->get(Capsule::class);
+
+        // Гарантируем, что миграции применены перед тестами БД
+        $engine = $container->get(\Magistrale\Database\MigrationEngine::class);
+        $engine->up(new class implements \Magistrale\Logging\MigrationLoggerInterface {
+            public function info(string $msg): void {}
+            public function comment(string $msg): void {}
+            public function error(string $msg): void {}
+        });
     }
 
     #[TestDox('Проверяет подключение к базе данных, запись тестовой строки через Eloquent и ее чтение')]

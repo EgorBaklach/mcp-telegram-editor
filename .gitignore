@@ -1,7 +1,9 @@
 /.phpunit.cache
+/.agents
 /.backup/*
 /vendor
 /logs
 .idea
 .zed
 .env
+_ide_helper.php

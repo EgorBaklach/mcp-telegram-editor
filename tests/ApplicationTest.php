@@ -45,6 +45,7 @@ class ApplicationTest extends TestCase
         $this->assertTrue($container->has(LoggerInterface::class));
         $this->assertTrue($container->has(StreamFactoryInterface::class));
         $this->assertTrue($container->has(Server::class));
+        $this->assertTrue($container->has(\Magistrale\Database\MigrationEngine::class));
 
         // Ensure resolution works correctly
         $this->assertInstanceOf(RouterInterface::class, $container->get(RouterInterface::class));
@@ -53,5 +54,6 @@ class ApplicationTest extends TestCase
         $this->assertInstanceOf(LoggerInterface::class, $container->get(LoggerInterface::class));
         $this->assertInstanceOf(StreamFactoryInterface::class, $container->get(StreamFactoryInterface::class));
         $this->assertInstanceOf(Server::class, $container->get(Server::class));
+        $this->assertInstanceOf(\Magistrale\Database\MigrationEngine::class, $container->get(\Magistrale\Database\MigrationEngine::class));
     }
 }
