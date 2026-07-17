@@ -6,7 +6,7 @@ interface MigrationLoggerInterface
 {
     public function setOutput(OutputInterface $output): void;
 
-    public function info(string $message): void;
-    public function comment(string $message): void;
-    public function error(string $message): void;
+    public function info(string $message): bool;
+    public function comment(string $message): bool;
+    public function error(string $message): bool;
 }

@@ -1,9 +1,9 @@
 <?php namespace Framework\Contracts\Console;
 
-use Psr\Container\ContainerInterface;
+use League\Container\DefinitionContainerInterface;
 
 interface CommandInterface
 {
-    public function setContainer(ContainerInterface $container): void;
+    public function setContainer(DefinitionContainerInterface $container): void;
     public function construct(): void;
 }

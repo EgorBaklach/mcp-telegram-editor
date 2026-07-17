@@ -11,18 +11,18 @@ class ConsoleMigrationLogger implements MigrationLoggerInterface
         $this->output = $output;
     }
 
-    public function info(string $message): void
+    public function info(string $message): true
     {
-        $this->output->writeln("<info>{$message}</info>");
+        $this->output->writeln("<info>{$message}</info>"); return true;
     }
 
-    public function comment(string $message): void
+    public function comment(string $message): true
     {
-        $this->output->writeln("<comment>{$message}</comment>");
+        $this->output->writeln("<comment>{$message}</comment>"); return true;
     }
 
-    public function error(string $message): void
+    public function error(string $message): true
     {
-        $this->output->writeln("<error>{$message}</error>");
+        $this->output->writeln("<error>{$message}</error>"); return true;
     }
 }

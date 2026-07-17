@@ -4,7 +4,8 @@ use PHPUnit\Framework\TestCase;
 use Framework\Application;
 use App\Models\TestRecord;
 use Illuminate\Database\Capsule\Manager as Capsule;
-use Magistrale\Database\MigrationEngine;
+use Magistrale\Dispatchers\Migration\UpMigrationDispatcher;
+use Magistrale\Dispatchers\Migration\AbstractMigrationDispatcher;
 use Magistrale\Logging\MigrationLoggerInterface;
 use PHPUnit\Framework\Attributes\TestDox;
 use ReflectionClass;
@@ -28,16 +29,26 @@ class DatabaseTest extends TestCase
         $this->capsule = $container->get(Capsule::class);
 
         // Гарантируем, что миграции применены перед тестами БД
-        $engine = $container->get(\Magistrale\Database\MigrationEngine::class);
+        $engine = $container->get(UpMigrationDispatcher::class);
 
-        // Сбрасываем статический флаг инициализации для корректных тестов
-        $reflector = new \ReflectionClass(\Magistrale\Database\MigrationEngine::class);
-        $initProperty = $reflector->getProperty('init');
-        $initProperty->setAccessible(true);
-        $initProperty->setValue(null, false);
 
-        $engine->build(new \Symfony\Component\Console\Output\NullOutput());
-        $engine->up();
+
+        $this->capsule::schema()->dropIfExists('migrations');
+        $this->capsule::schema()->dropIfExists('test_records');
+
+        $command = new \Cli\Commands\MigrateCommand();
+        $command->setContainer($container);
+        $command->construct();
+        $command->logger->setOutput(new \Symfony\Component\Console\Output\NullOutput());
+
+        $engine->build($command);
+        $engine->dispatch();
+    }
+
+    protected function tearDown(): void
+    {
+        $this->capsule->getConnection()->disconnect();
+        parent::tearDown();
     }
 
     #[TestDox('Проверяет подключение к базе данных, запись тестовой строки через Eloquent и ее чтение')]
