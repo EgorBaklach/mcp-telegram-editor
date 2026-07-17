@@ -24,9 +24,9 @@ services:
     ports:
       - "5432:5432"
     environment:
-      POSTGRES_DB: mcp_editor
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: pg_pass_editor_secret_99
+      POSTGRES_DB: ${DB_DATABASE}
+      POSTGRES_USER: ${DB_USERNAME}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
     command: >
       postgres
       -c shared_buffers=16MB
