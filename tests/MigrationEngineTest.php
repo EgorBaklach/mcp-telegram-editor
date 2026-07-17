@@ -39,6 +39,9 @@ class MigrationEngineTest extends TestCase
         $this->engine->build(new \Symfony\Component\Console\Output\NullOutput());
         $this->assertTrue($this->capsule::schema()->hasTable('migrations'));
 
+        // Очищаем БД от таблиц миграций из-за других тестов
+        $this->capsule::schema()->dropIfExists('test_records');
+
         // 2. Очищаем таблицу миграций для чистоты теста
         $this->capsule::table('migrations')->truncate();
 

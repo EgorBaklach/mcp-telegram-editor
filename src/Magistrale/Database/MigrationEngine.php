@@ -43,34 +43,29 @@ class MigrationEngine
 
     public function __call(string $name, array $attributes): ?bool
     {
-        return static::$init ? $this->{self::prefix.$name}(...$attributes) : throw new RuntimeException("Need to run method build first!");
+        return static::$init ? $this->{self::prefix.$name}(...$attributes) : throw new RuntimeException("Сначала нужно вызвать метод build!");
     }
 
     private function run_up(): bool
     {
         if(empty($files = $this->getPendingFiles()))
         {
-            $this->logger->info('База данных в актуальном состоянии. Нет новых миграций.');
-            return true;
+            $this->logger->info('База данных в актуальном состоянии. Нет новых миграций.'); return true;
         }
 
-        $batch = ($this->capsule::table('migrations')->max('batch') ?? 0) + 1;
+        $batch = $this->capsule::table('migrations')->max('batch') ?? 0; foreach($files as $file) if(!$this->applyMigration($file, $batch + 1)) return false;
 
-        foreach($files as $file)
-        {
-            if(!$this->applyMigration($file, $batch)) return false;
-        }
-
-        $this->logger->info('Все новые миграции успешно применены!');
-
-        return true;
+        $this->logger->info('Все новые миграции успешно применены!'); return true;
     }
 
     private function getPendingFiles(): array
     {
         $files = Glob::glob('database/migrations/*.php', Glob::GLOB_BRACE, true);
 
-        if(($last = $this->capsule::table('migrations')->orderByDesc('batch')->orderByDesc('id')->value('migration')) && ($index = array_search($last, $files)) !== false) return array_slice($files, $index + 1);
+        if($last = $this->capsule::table('migrations')->orderByDesc('batch')->orderByDesc('id')->value('migration'))
+        {
+            if(($index = array_search($last, $files)) !== false) return array_slice($files, $index + 1);
+        }
 
         return $files;
     }
@@ -81,21 +76,18 @@ class MigrationEngine
 
         try
         {
-            if(!is_object($instance = require $file) || !method_exists($instance, 'up')) throw new RuntimeException("Файл миграции {$file} должен возвращать анонимный класс с методом up()");
+            if(!is_object($instance = require $file) || !method_exists($instance, 'up'))
+            {
+                throw new RuntimeException("Файл миграции {$file} должен возвращать анонимный класс с методом up()");
+            }
 
-            $instance->up();
+            $instance->up(); $this->capsule::table('migrations')->insert(['migration' => $file, 'batch' => $batch]);
 
-            $this->capsule::table('migrations')->insert(['migration' => $file, 'batch' => $batch]);
-
-            $this->logger->info("Миграция {$file} успешно выполнена.");
-
-            return true;
+            $this->logger->info("Миграция {$file} успешно выполнена."); return true;
         }
         catch(Throwable $e)
         {
-            $this->logger->error("Ошибка при выполнении миграции {$file}: {$e->getMessage()}");
-
-            return false;
+            $this->logger->error("Ошибка при выполнении миграции {$file}: {$e->getMessage()}"); return false;
         }
     }
 
