@@ -2,13 +2,13 @@
 
 use Framework\Contracts\Console\CommandInterface;
 use Framework\Contracts\Console\ConsoleInterface;
-use Psr\Container\ContainerInterface;
+use League\Container\DefinitionContainerInterface;
 use Symfony\Component\Console\Application;
 use Symfony\Component\Console\Command\Command;
 
 class SymfonyConsole extends Application implements ConsoleInterface
 {
-    public function __construct(private readonly ContainerInterface $container)
+    public function __construct(private readonly DefinitionContainerInterface $container)
     {
         parent::__construct('Application CLI', '1.0.0');
     }

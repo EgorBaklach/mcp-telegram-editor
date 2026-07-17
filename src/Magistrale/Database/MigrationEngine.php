@@ -1,146 +1,171 @@
 <?php namespace Magistrale\Database;
 
 use Illuminate\Database\Capsule\Manager as Capsule;
+use Illuminate\Database\Query\Builder;
 use Laminas\Stdlib\Glob;
 use Magistrale\Logging\MigrationLoggerInterface;
+use RuntimeException;
+use Symfony\Component\Console\Output\OutputInterface;
+use Throwable;
 
+/**
+ * @method bool up()
+ * @method bool down(mixed $option)
+ */
 class MigrationEngine
 {
-    private bool $tableExists = false;
+    private static bool $init = false;
 
-    public function __construct(private readonly Capsule $capsule) {}
+    private const prefix = 'run_';
 
-    /**
-     * Checks if migrations table exists (caching the result in memory).
-     */
-    private function checkTableExists(): bool
+    public function __construct(private readonly Capsule $capsule, private readonly MigrationLoggerInterface $logger) {}
+
+    public function build(OutputInterface $output): void
     {
-        if ($this->tableExists) {
-            return true;
-        }
-        $this->tableExists = $this->capsule::schema()->hasTable('migrations');
-        return $this->tableExists;
-    }
+        if(static::$init) return; static::$init = true;
 
-    /**
-     * Creates migrations table if not exists.
-     */
-    private function ensureMigrationsTable(MigrationLoggerInterface $logger): void
-    {
-        if (!$this->checkTableExists()) {
-            $logger->comment('Создается таблица migrations...');
+        $this->logger->setOutput($output);
+
+        if (!$this->capsule::schema()->hasTable('migrations'))
+        {
+            $this->logger->comment('Создается таблица migrations...');
+
             $this->capsule::schema()->create('migrations', function ($table) {
                 $table->increments('id');
                 $table->string('migration');
                 $table->integer('batch');
             });
-            $this->tableExists = true;
-            $logger->info('Таблица migrations успешно создана.');
+
+            $this->logger->info('Таблица migrations успешно создана.');
         }
     }
 
-    /**
-     * Runs all pending migrations (up).
-     */
-    public function up(MigrationLoggerInterface $logger): bool
+    public function __call(string $name, array $attributes): ?bool
     {
-        $this->ensureMigrationsTable($logger);
+        return static::$init ? $this->{self::prefix.$name}(...$attributes) : throw new RuntimeException("Need to run method build first!");
+    }
 
-        // 1. Get executed migrations (tracked by full paths)
-        $executed = $this->capsule::table('migrations')->pluck('migration')->toArray();
+    private function query()
+    {
+        return $this->capsule::table('migrations');
+    }
 
-        // 2. Scan for migration files
+    private function run_up(): bool
+    {
+
+
+        $this->logger->info(json_encode(Glob::glob('database/migrations/*.php', Glob::GLOB_BRACE, true)));
+
+
+
+        return true;
+
+        /*// 1. Сканируем директорию миграций через Glob
         $files = Glob::glob('database/migrations/*.php', Glob::GLOB_BRACE, true);
         sort($files);
+        $files = array_map('realpath', $files);
+        $files = array_filter($files);
+
+        // 2. Получаем последнюю выполненную миграцию по батчу
+        $lastMigrationPath = (clone $this->queryBuilder)->orderBy('batch', 'desc')->orderBy('id', 'desc')->value('migration');
 
         $pendingFiles = [];
-        foreach ($files as $file) {
-            $absolutePath = realpath($file);
-            if ($absolutePath && !in_array($absolutePath, $executed)) {
-                $pendingFiles[] = $absolutePath;
+        if ($lastMigrationPath === null) {
+            // Если в БД нет миграций, то все файлы считаются новыми
+            $pendingFiles = $files;
+        } else {
+            $lastIndex = array_search(realpath($lastMigrationPath), $files);
+            if ($lastIndex === false) {
+                // Резервный вариант: если файл последней миграции переименован/удален на диске,
+                // фильтруем по полному списку выполненных
+                $executed = (clone $this->queryBuilder)->pluck('migration')->toArray();
+                foreach ($files as $file) {
+                    if (!in_array($file, $executed)) {
+                        $pendingFiles[] = $file;
+                    }
+                }
+            } else {
+                // Собираем только файлы, идущие по списку строго после последней выполненной
+                $pendingFiles = array_slice($files, $lastIndex + 1);
             }
         }
 
         if (empty($pendingFiles)) {
-            $logger->info('База данных в актуальном состоянии. Нет новых миграций.');
+            $this->logger->info('База данных в актуальном состоянии. Нет новых миграций.');
             return true;
         }
 
-        // Calculate next batch
-        $batch = ($this->capsule::table('migrations')->max('batch') ?? 0) + 1;
+        $batch = (clone $this->queryBuilder)->max('batch') ?? 0;
+        $batch++;
 
-        // Run migrations
+        // Запуск миграций
         foreach ($pendingFiles as $file) {
             $name = basename($file);
-            $logger->comment("Применение миграции {$name}... ");
-            
+            $this->logger->comment("Применение миграции {$name}... ");
+
             try {
                 $migrationInstance = require $file;
-                
+
                 if (is_object($migrationInstance) && method_exists($migrationInstance, 'up')) {
                     $migrationInstance->up();
                 } else {
-                    throw new \RuntimeException("Файл миграции должен возвращать объект с методом up().");
+                    throw new RuntimeException("Файл миграции должен возвращать объект с методом up().");
                 }
 
-                $this->capsule::table('migrations')->insert([
+                (clone $this->queryBuilder)->insert([
                     'migration' => $file,
                     'batch'     => $batch,
                 ]);
 
-                $logger->info("Миграция {$name} успешно выполнена.");
-            } catch (\Throwable $e) {
-                $logger->error("Ошибка при выполнении миграции {$name}: {$e->getMessage()}");
+                $this->logger->info("Миграция {$name} успешно выполнена.");
+            } catch (Throwable $e) {
+                $this->logger->error("Ошибка при выполнении миграции {$name}: {$e->getMessage()}");
                 return false;
             }
         }
 
-        $logger->info('Все новые миграции успешно применены!');
-        return true;
+        $this->logger->info('Все новые миграции успешно применены!');
+        return true;*/
     }
 
     /**
      * Rolls back migrations.
-     * 
+     *
      * @param string|int|null $target 'all' for all, numeric ID for specific migration, null for last batch.
      */
-    public function down(string|int|null $target, MigrationLoggerInterface $logger): bool
+    private function run_down(string|int|null $target): bool
     {
-        if (!$this->checkTableExists()) {
-            $logger->info('Таблица migrations не найдена. Нечего откатывать.');
-            return true;
-        }
+        $this->logger->info($target);
 
-        $query = $this->capsule::table('migrations');
+        return true;
+
+        /*$query = clone $this->queryBuilder;
 
         if ($target === null) {
-            // Rollback last batch
-            $lastBatch = $this->capsule::table('migrations')->max('batch');
+            $lastBatch = (clone $this->queryBuilder)->max('batch');
             if ($lastBatch === null) {
-                $logger->info('Нет записей о выполненных миграциях.');
+                $this->logger->info('Нет записей о выполненных миграциях.');
                 return true;
             }
             $migrationsToRollback = $query->where('batch', $lastBatch)->orderBy('id', 'desc')->get();
         } elseif ($target === 'all') {
-            // Rollback all
             $migrationsToRollback = $query->orderBy('id', 'desc')->get();
         } else {
-            // Rollback specific ID
             $migrationsToRollback = $query->where('id', (int)$target)->get();
         }
 
         if ($migrationsToRollback->isEmpty()) {
-            $logger->info('Не найдено миграций для отката.');
+            $this->logger->info('Не найдено миграций для отката.');
             return true;
         }
 
         foreach ($migrationsToRollback as $row) {
             $file = $row->migration;
             $name = basename($file);
-            $logger->comment("Откат миграции {$name} (ID: {$row->id})... ");
+            $this->logger->comment("Откат миграции {$name} (ID: {$row->id})... ");
 
             if (!file_exists($file)) {
-                $logger->error("Файл миграции {$name} не найден по пути {$file}. Отмена операции.");
+                $this->logger->error("Файл миграции {$name} не найден по пути {$file}. Отмена операции.");
                 return false;
             }
 
@@ -149,18 +174,18 @@ class MigrationEngine
                 if (is_object($migrationInstance) && method_exists($migrationInstance, 'down')) {
                     $migrationInstance->down();
                 } else {
-                    throw new \RuntimeException("Файл миграции должен возвращать объект с методом down().");
+                    throw new RuntimeException("Файл миграции должен возвращать объект с методом down().");
                 }
 
-                $this->capsule::table('migrations')->where('id', $row->id)->delete();
-                $logger->info("Миграция {$name} успешно откачена.");
-            } catch (\Throwable $e) {
-                $logger->error("Ошибка при откате миграции {$name}: {$e->getMessage()}");
+                (clone $this->queryBuilder)->where('id', $row->id)->delete();
+                $this->logger->info("Миграция {$name} успешно откачена.");
+            } catch (Throwable $e) {
+                $this->logger->error("Ошибка при откате миграции {$name}: {$e->getMessage()}");
                 return false;
             }
         }
 
-        $logger->info('Откат миграций успешно завершен!');
-        return true;
+        $this->logger->info('Откат миграций успешно завершен!');
+        return true;*/
     }
 }

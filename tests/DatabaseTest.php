@@ -4,7 +4,10 @@ use PHPUnit\Framework\TestCase;
 use Framework\Application;
 use App\Models\TestRecord;
 use Illuminate\Database\Capsule\Manager as Capsule;
+use Magistrale\Database\MigrationEngine;
+use Magistrale\Logging\MigrationLoggerInterface;
 use PHPUnit\Framework\Attributes\TestDox;
+use ReflectionClass;
 
 class DatabaseTest extends TestCase
 {
@@ -16,7 +19,7 @@ class DatabaseTest extends TestCase
         $config = require __DIR__ . '/../bootstrap/machine.php';
         $app = Application::make($config);
 
-        $reflector = new \ReflectionClass($app);
+        $reflector = new ReflectionClass($app);
         $containerProperty = $reflector->getProperty('container');
         $containerProperty->setAccessible(true);
         $container = $containerProperty->getValue($app);
@@ -26,11 +29,15 @@ class DatabaseTest extends TestCase
 
         // Гарантируем, что миграции применены перед тестами БД
         $engine = $container->get(\Magistrale\Database\MigrationEngine::class);
-        $engine->up(new class implements \Magistrale\Logging\MigrationLoggerInterface {
-            public function info(string $msg): void {}
-            public function comment(string $msg): void {}
-            public function error(string $msg): void {}
-        });
+
+        // Сбрасываем статический флаг инициализации для корректных тестов
+        $reflector = new \ReflectionClass(\Magistrale\Database\MigrationEngine::class);
+        $initProperty = $reflector->getProperty('init');
+        $initProperty->setAccessible(true);
+        $initProperty->setValue(null, false);
+
+        $engine->build(new \Symfony\Component\Console\Output\NullOutput());
+        $engine->up();
     }
 
     #[TestDox('Проверяет подключение к базе данных, запись тестовой строки через Eloquent и ее чтение')]

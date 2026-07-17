@@ -5,6 +5,7 @@ use Framework\Application;
 use Framework\Contracts\Router\RouterInterface;
 use Framework\Contracts\Emitter\EmitterInterface;
 use League\Route\Strategy\StrategyInterface;
+use Magistrale\Database\MigrationEngine;
 use Psr\Http\Message\ResponseFactoryInterface;
 use Psr\Http\Message\StreamFactoryInterface;
 use Psr\Log\LoggerInterface;
@@ -45,7 +46,7 @@ class ApplicationTest extends TestCase
         $this->assertTrue($container->has(LoggerInterface::class));
         $this->assertTrue($container->has(StreamFactoryInterface::class));
         $this->assertTrue($container->has(Server::class));
-        $this->assertTrue($container->has(\Magistrale\Database\MigrationEngine::class));
+        $this->assertTrue($container->has(MigrationEngine::class));
 
         // Ensure resolution works correctly
         $this->assertInstanceOf(RouterInterface::class, $container->get(RouterInterface::class));
@@ -54,6 +55,6 @@ class ApplicationTest extends TestCase
         $this->assertInstanceOf(LoggerInterface::class, $container->get(LoggerInterface::class));
         $this->assertInstanceOf(StreamFactoryInterface::class, $container->get(StreamFactoryInterface::class));
         $this->assertInstanceOf(Server::class, $container->get(Server::class));
-        $this->assertInstanceOf(\Magistrale\Database\MigrationEngine::class, $container->get(\Magistrale\Database\MigrationEngine::class));
+        $this->assertInstanceOf(MigrationEngine::class, $container->get(MigrationEngine::class));
     }
 }

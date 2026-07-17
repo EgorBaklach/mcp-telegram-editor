@@ -6,5 +6,7 @@ class TestRecord extends Model
 {
     protected $table = 'test_records';
 
-    protected $fillable = ['message'];
+    protected $fillable = [
+        'message'
+    ];
 }

@@ -4,7 +4,12 @@ use Symfony\Component\Console\Output\OutputInterface;
 
 class ConsoleMigrationLogger implements MigrationLoggerInterface
 {
-    public function __construct(private readonly OutputInterface $output) {}
+    private readonly OutputInterface $output;
+
+    public function setOutput(OutputInterface $output): void
+    {
+        $this->output = $output;
+    }
 
     public function info(string $message): void
     {
