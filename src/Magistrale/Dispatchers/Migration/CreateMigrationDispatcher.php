@@ -16,14 +16,8 @@ class CreateMigrationDispatcher extends AbstractMigrationDispatcher
 
         $fileName = date('Y_m_d_His').'_'.preg_replace('/[^a-z0-9_]/', '_', strtolower(preg_replace('/(?<!^)[A-Z]/', '_$0', $payload))).'.php';
 
-        $templatePath = getcwd() . '/storage/app/templates/migration.php';
+        $this->fs->dumpFile('database/migrations/'.$fileName, $this->fs->readFile('storage/app/templates/migration.php'));
 
-        $template = $this->fs->exists($templatePath) ? $this->fs->readFile($templatePath) : "<?php\n\nreturn new class\n{\n    public function up(): void {}\n    public function down(): void {}\n};\n";
-
-        $this->fs->dumpFile(getcwd() . '/database/migrations/' . $fileName, $template);
-
-        $this->command->logger->info("Миграция успешно создана: database/migrations/{$fileName}");
-
-        return true;
+        $this->command->logger->info("Миграция успешно создана: database/migrations/{$fileName}"); return true;
     }
 }
