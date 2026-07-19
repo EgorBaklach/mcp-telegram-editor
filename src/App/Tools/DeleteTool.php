@@ -9,6 +9,6 @@ final class DeleteTool
 
     public function delete(int $messageId): string
     {
-        if(!$messageId) throw new InvalidArgumentException('$messageId must not be empty');return $this->dispatcher->dispatch($messageId) ? 'success' : 'failed';
+        if(!$messageId) throw new InvalidArgumentException('$messageId must not be empty'); return $this->dispatcher->dispatch($messageId) ? 'success' : 'failed';
     }
 }

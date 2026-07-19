@@ -3,24 +3,32 @@
 use Illuminate\Database\Capsule\Manager as Capsule;
 use Magistrale\Dispatchers\DispatcherInterface;
 use Magistrale\HTTPClients\Telegram as Client;
+use Psr\Http\Message\ResponseInterface;
 use Psr\Log\LoggerInterface;
+use RuntimeException;
+use Throwable;
 
 abstract class AbstractDispatcher implements DispatcherInterface
 {
+    protected const method = '';
+
     public function __construct(protected readonly Capsule $capsule, protected readonly LoggerInterface $logger, protected readonly Client $client) {}
 
-    abstract public function dispatch(mixed $payload = null): bool;
-
-    protected function logResult(\Psr\Http\Message\ResponseInterface $response): void
+    public function dispatch(mixed $payload = null): bool
     {
-        $body = $response->getBody();
-        $body->rewind();
-        $data = json_decode($body->getContents(), true);
-        $body->rewind();
+        if(!$payload) return false;
 
-        if(isset($data['ok'], $data['result']) && $data['ok'] === true)
+        try
         {
-            $this->logger->info("Telegram API result: " . json_encode($data['result'], JSON_UNESCAPED_UNICODE));
+            $response = $this->client->{static::method}($payload); if($response->getStatusCode() !== 200) throw new RuntimeException($response->getStatusCode());
+
+            $this->logger->info("Telegram API result: " . (string) $response->getBody()); return true;
         }
+        catch(Throwable $e)
+        {
+            $this->logger->error("Failed to operate with Telegram: " . (string) $e);
+        }
+
+        return false;
     }
 }
