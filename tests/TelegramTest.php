@@ -6,6 +6,8 @@ use Illuminate\Database\Capsule\Manager as Capsule;
 use Magistrale\HTTPClients\Telegram;
 use Magistrale\Dispatchers\Telegram\PublishDispatcher;
 use Magistrale\Dispatchers\Telegram\DeleteDispatcher;
+use Magistrale\Dispatchers\Telegram\DeleteByTextDispatcher;
+use App\Models\TelegramPost;
 use GuzzleHttp\Psr7\Response;
 use PHPUnit\Framework\Attributes\TestDox;
 use ReflectionClass;
@@ -27,6 +29,14 @@ class TelegramTest extends TestCase
         $this->container = $containerProperty->getValue($app);
 
         $this->capsule = $this->container->get(Capsule::class);
+
+        $engine = $this->container->get(\Magistrale\Dispatchers\Migration\UpDispatcher::class);
+        $command = new \Cli\Commands\MigrateCommand();
+        $command->setContainer($this->container);
+        $command->construct();
+        $command->logger->setOutput(new \Symfony\Component\Console\Output\NullOutput());
+        $engine->build($command);
+        $engine->dispatch();
     }
 
     protected function tearDown(): void
@@ -91,5 +101,64 @@ class TelegramTest extends TestCase
 
         $dispatcher = $this->container->get(DeleteDispatcher::class);
         $this->assertFalse($dispatcher->dispatch(12345));
+    }
+
+    #[TestDox('Проверяет, что PublishDispatcher сохраняет опубликованное сообщение в БД')]
+    public function testPublishDispatcherSavesToDb(): void
+    {
+        TelegramPost::truncate();
+
+        $mockClient = $this->createMock(Telegram::class);
+        $mockClient->expects($this->once())
+            ->method('sendMessage')
+            ->with($this->equalTo('Hello DB Test'))
+            ->willReturn(new Response(200, [], '{"ok":true,"result":{"message_id":999,"text":"Hello DB Test"}}'));
+
+        $this->container->add(Telegram::class, $mockClient);
+
+        $dispatcher = $this->container->get(PublishDispatcher::class);
+        $this->assertTrue($dispatcher->dispatch('Hello DB Test'));
+
+        $post = TelegramPost::where('message_id', 999)->first();
+        $this->assertNotNull($post);
+        $this->assertEquals('Hello DB Test', $post->text);
+        
+        TelegramPost::truncate();
+    }
+
+    #[TestDox('Проверяет успешное удаление сообщения по тексту через DeleteByTextDispatcher')]
+    public function testDeleteByTextDispatcherExecutesSuccessfully(): void
+    {
+        TelegramPost::truncate();
+        TelegramPost::create(['message_id' => 888, 'text' => 'Delete me by text']);
+
+        $mockClient = $this->createMock(Telegram::class);
+        $mockClient->expects($this->once())
+            ->method('deleteMessage')
+            ->with($this->equalTo(888))
+            ->willReturn(new Response(200, [], '{"ok":true,"result":true}'));
+
+        $this->container->add(Telegram::class, $mockClient);
+
+        $dispatcher = $this->container->get(DeleteByTextDispatcher::class);
+        $this->assertTrue($dispatcher->dispatch('me by'));
+
+        $this->assertNull(TelegramPost::where('message_id', 888)->first());
+        
+        TelegramPost::truncate();
+    }
+
+    #[TestDox('Проверяет возвращение false в DeleteByTextDispatcher, если текст не найден в БД')]
+    public function testDeleteByTextDispatcherReturnsFalseIfNotFound(): void
+    {
+        TelegramPost::truncate();
+
+        $mockClient = $this->createMock(Telegram::class);
+        $mockClient->expects($this->never())->method('deleteMessage');
+
+        $this->container->add(Telegram::class, $mockClient);
+
+        $dispatcher = $this->container->get(DeleteByTextDispatcher::class);
+        $this->assertFalse($dispatcher->dispatch('Nonexistent text'));
     }
 }

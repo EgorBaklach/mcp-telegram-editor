@@ -59,6 +59,7 @@ class DispatchersTest extends TestCase
 
         // Очищаем БД от таблиц миграций из-за других тестов
         $this->capsule::schema()->dropIfExists('test_records');
+        $this->capsule::schema()->dropIfExists('telegram_posts');
 
         // 2. Очищаем таблицу миграций для чистоты теста
         Migration::query()->truncate();
@@ -83,6 +84,7 @@ class DispatchersTest extends TestCase
     public function testRunDownExecutesCorrectly(): void
     {
         $this->capsule::schema()->dropIfExists('test_records');
+        $this->capsule::schema()->dropIfExists('telegram_posts');
         Migration::query()->truncate();
 
         // 1. Накатываем миграции
@@ -103,6 +105,7 @@ class DispatchersTest extends TestCase
     public function testAdvancedRollbackBehaviors(): void
     {
         $this->capsule::schema()->dropIfExists('test_records');
+        $this->capsule::schema()->dropIfExists('telegram_posts');
         $this->capsule::schema()->dropIfExists('test_table_a');
         $this->capsule::schema()->dropIfExists('test_table_b');
         $this->capsule::schema()->dropIfExists('test_table_c');

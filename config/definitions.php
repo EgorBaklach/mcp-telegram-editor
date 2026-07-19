@@ -4,6 +4,7 @@ use App\Strategies\McpJsonStrategy;
 use App\Tools\PingTool;
 use App\Tools\PublishTool;
 use App\Tools\DeleteTool;
+use App\Tools\DeleteByTextTool;
 use Cli\Commands\HelloWorldCommand;
 use Cli\Console\SymfonyConsole;
 use Framework\Emitters\SapiEmitter;
@@ -49,6 +50,7 @@ return new DefinitionAggregate([
     new Definition('mcp.tools', [
         ['handler' => [PublishTool::class, 'publish'], 'name' => 'publish', 'description' => 'Publishes on the Telegram channel by post'],
         ['handler' => [PingTool::class, 'ping'], 'name' => 'ping', 'description' => 'Returns "pong: {message}". Useful for connectivity tests.'],
-        ['handler' => [DeleteTool::class, 'delete'], 'name' => 'delete', 'description' => 'Deletes a message from the Telegram channel by message ID']
+        ['handler' => [DeleteTool::class, 'delete'], 'name' => 'delete', 'description' => 'Deletes a message from the Telegram channel by message ID'],
+        ['handler' => [DeleteByTextTool::class, 'deleteByText'], 'name' => 'delete_by_text', 'description' => 'Deletes a message from the Telegram channel by searching its text content in DB']
     ])
 ]);

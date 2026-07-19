@@ -35,6 +35,7 @@ class DatabaseTest extends TestCase
 
         $this->capsule::schema()->dropIfExists('migrations');
         $this->capsule::schema()->dropIfExists('test_records');
+        $this->capsule::schema()->dropIfExists('telegram_posts');
 
         $command = new \Cli\Commands\MigrateCommand();
         $command->setContainer($container);
