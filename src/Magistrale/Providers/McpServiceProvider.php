@@ -8,6 +8,7 @@ use Mcp\Server\Session\FileSessionStore;
 use Psr\Log\LoggerInterface;
 use Psr\Http\Message\StreamFactoryInterface;
 use Laminas\Diactoros\StreamFactory;
+use League\Container\DefinitionContainerInterface;
 use League\Container\ServiceProvider\BootableServiceProviderInterface;
 
 final class McpServiceProvider extends ProviderAbstract implements BootableServiceProviderInterface
@@ -15,6 +16,7 @@ final class McpServiceProvider extends ProviderAbstract implements BootableServi
     private array $settings;
 
     protected array $provides = [
+        DefinitionContainerInterface::class,
         LoggerInterface::class,
         Server::class,
         StreamFactoryInterface::class,
@@ -27,13 +29,16 @@ final class McpServiceProvider extends ProviderAbstract implements BootableServi
 
     public function register(): void
     {
-        // 1. Logger
+        // 1. DefinitionContainer
+        $this->container()->addShared(DefinitionContainerInterface::class, $this->container());
+
+        // 2. Logger
         $this->container()->addShared(LoggerInterface::class, fn (): StderrLogger => new StderrLogger($this->settings['logging']['stream'] ?? 'php://stderr'));
 
-        // 2. StreamFactory
+        // 3. StreamFactory
         $this->container()->addShared(StreamFactoryInterface::class, StreamFactory::class);
 
-        // 3. MCP Server
+        // 4. MCP Server
         $this->container()->addShared(Server::class, function (): Server
         {
             $builder = (new Builder())
