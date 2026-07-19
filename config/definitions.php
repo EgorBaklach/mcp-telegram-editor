@@ -1,6 +1,8 @@
 <?php
 
 use App\Strategies\McpJsonStrategy;
+use App\Tools\PingTool;
+use App\Tools\PublishTool;
 use Cli\Commands\HelloWorldCommand;
 use Cli\Console\SymfonyConsole;
 use Framework\Emitters\SapiEmitter;
@@ -27,6 +29,7 @@ return new DefinitionAggregate([
         ]
     ]),
     new Definition('mcp.tools', [
-        // Добавьте новые инструменты для публикации и сбора данных здесь
+        ['handler' => [PublishTool::class, 'publish'], 'name' => 'publish', 'description' => 'Отправляет текстовое сообщение в Telegram-канал'],
+        ['handler' => [PingTool::class, 'ping'], 'name' => 'ping', 'description' => 'Returns "pong: {message}". Useful for connectivity tests.']
     ])
 ]);

@@ -1,5 +1,6 @@
 <?php namespace Magistrale\Dispatchers\Migration;
 
+use Cli\Commands\MigrateCommand;
 use Illuminate\Database\Capsule\Manager;
 use Symfony\Component\Filesystem\Filesystem;
 
@@ -8,6 +9,11 @@ class CreateDispatcher extends AbstractDispatcher
     public function __construct(private Filesystem $fs, Manager $capsule)
     {
         return parent::__construct($capsule);
+    }
+
+    public function build(MigrateCommand $command): self
+    {
+        $this->command = $command; return $this;
     }
 
     public function dispatch(mixed $payload = null): bool

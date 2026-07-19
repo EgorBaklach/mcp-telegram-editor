@@ -3,6 +3,7 @@
 use Cli\Commands\MigrateCommand;
 use Illuminate\Database\Capsule\Manager as Capsule;
 use Illuminate\Database\Schema\Blueprint;
+use Magistrale\Dispatchers\DispatcherInterface;
 use Magistrale\Logging\MigrationLoggerInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 
