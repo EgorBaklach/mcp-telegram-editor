@@ -39,7 +39,8 @@ final class McpServiceProvider extends ProviderAbstract implements BootableServi
             $builder = (new Builder())
                 ->setServerInfo($this->settings['server_name'], $this->settings['server_ver'])
                 ->setLogger($this->container()->get(LoggerInterface::class))
-                ->setSession(new FileSessionStore($this->settings['session_dir']));
+                ->setSession(new FileSessionStore($this->settings['session_dir']))
+                ->setContainer($this->container());
 
             foreach ($this->container()->get('mcp.tools') as $tool) $builder->addTool(...$tool);
 
