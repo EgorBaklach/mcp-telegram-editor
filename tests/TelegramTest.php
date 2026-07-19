@@ -42,7 +42,7 @@ class TelegramTest extends TestCase
         $mockClient->expects($this->once())
             ->method('sendMessage')
             ->with($this->equalTo('Test Message'))
-            ->willReturn(new Response(200));
+            ->willReturn(new Response(200, [], '{"ok":true,"result":{"message_id":123,"text":"Test Message"}}'));
 
         $this->container->add(Telegram::class, $mockClient);
 
@@ -71,7 +71,7 @@ class TelegramTest extends TestCase
         $mockClient->expects($this->once())
             ->method('deleteMessage')
             ->with($this->equalTo(12345))
-            ->willReturn(new Response(200));
+            ->willReturn(new Response(200, [], '{"ok":true,"result":true}'));
 
         $this->container->add(Telegram::class, $mockClient);
 

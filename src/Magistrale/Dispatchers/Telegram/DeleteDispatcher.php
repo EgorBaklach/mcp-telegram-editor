@@ -10,8 +10,11 @@ class DeleteDispatcher extends AbstractDispatcher
 
         try
         {
-            if($this->client->deleteMessage((int) $payload)->getStatusCode() === 200)
+            $response = $this->client->deleteMessage((int) $payload);
+
+            if($response->getStatusCode() === 200)
             {
+                $this->logResult($response);
                 $this->logger->info("Message {$payload} deleted successfully."); return true;
             }
         }

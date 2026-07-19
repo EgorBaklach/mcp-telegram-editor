@@ -10,6 +10,6 @@ final class PublishTool
 
     public function publish(string $post): string
     {
-        if(!$post) throw new InvalidArgumentException('$post must not be empty'); $this->dispatcher->dispatch($post); return 'success';
+        if(!$post) throw new InvalidArgumentException('$post must not be empty'); return $this->dispatcher->dispatch($post) ? 'success' : 'failed';
     }
 }

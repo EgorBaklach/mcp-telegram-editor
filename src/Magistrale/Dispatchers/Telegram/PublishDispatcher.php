@@ -10,8 +10,11 @@ class PublishDispatcher extends AbstractDispatcher
 
         try
         {
-            if($this->client->sendMessage((string) $payload)->getStatusCode() === 200)
+            $response = $this->client->sendMessage((string) $payload);
+
+            if($response->getStatusCode() === 200)
             {
+                $this->logResult($response);
                 $this->logger->info("Message published to Telegram channel successfully."); return true;
             }
         }
