@@ -3,7 +3,7 @@
 use Illuminate\Database\Capsule\Manager;
 use Symfony\Component\Filesystem\Filesystem;
 
-class CreateMigrationDispatcher extends AbstractMigrationDispatcher
+class CreateDispatcher extends AbstractDispatcher
 {
     public function __construct(private Filesystem $fs, Manager $capsule)
     {

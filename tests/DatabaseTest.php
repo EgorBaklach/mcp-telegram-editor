@@ -4,8 +4,8 @@ use PHPUnit\Framework\TestCase;
 use Framework\Application;
 use App\Models\TestRecord;
 use Illuminate\Database\Capsule\Manager as Capsule;
-use Magistrale\Dispatchers\Migration\UpMigrationDispatcher;
-use Magistrale\Dispatchers\Migration\AbstractMigrationDispatcher;
+use Magistrale\Dispatchers\Migration\UpDispatcher;
+use Magistrale\Dispatchers\Migration\AbstractDispatcher;
 use Magistrale\Logging\MigrationLoggerInterface;
 use PHPUnit\Framework\Attributes\TestDox;
 use ReflectionClass;
@@ -29,7 +29,7 @@ class DatabaseTest extends TestCase
         $this->capsule = $container->get(Capsule::class);
 
         // Гарантируем, что миграции применены перед тестами БД
-        $engine = $container->get(UpMigrationDispatcher::class);
+        $engine = $container->get(UpDispatcher::class);
 
 
 

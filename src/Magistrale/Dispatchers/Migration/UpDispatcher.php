@@ -5,7 +5,7 @@ use App\Models\Migration;
 use RuntimeException;
 use Throwable;
 
-class UpMigrationDispatcher extends AbstractMigrationDispatcher
+class UpDispatcher extends AbstractDispatcher
 {
     public function dispatch(mixed $payload = null): bool
     {

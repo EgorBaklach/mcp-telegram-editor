@@ -2,10 +2,10 @@
 
 use Framework\Contracts\Console\CommandInterface;
 use League\Container\DefinitionContainerInterface;
-use Magistrale\Dispatchers\Migration\AbstractMigrationDispatcher;
-use Magistrale\Dispatchers\Migration\CreateMigrationDispatcher;
-use Magistrale\Dispatchers\Migration\DownMigrationDispatcher;
-use Magistrale\Dispatchers\Migration\UpMigrationDispatcher;
+use Magistrale\Dispatchers\Migration\AbstractDispatcher;
+use Magistrale\Dispatchers\Migration\CreateDispatcher;
+use Magistrale\Dispatchers\Migration\DownDispatcher;
+use Magistrale\Dispatchers\Migration\UpDispatcher;
 use Magistrale\Logging\MigrationLoggerInterface;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
@@ -20,9 +20,9 @@ class MigrateCommand extends Command implements CommandInterface
     public MigrationLoggerInterface $logger;
 
     private const dispatchers = [
-        'up' => UpMigrationDispatcher::class,
-        'down' => DownMigrationDispatcher::class,
-        'new' => CreateMigrationDispatcher::class,
+        'up' => UpDispatcher::class,
+        'down' => DownDispatcher::class,
+        'new' => CreateDispatcher::class,
     ];
 
     public function setContainer(DefinitionContainerInterface $container): void

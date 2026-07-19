@@ -6,7 +6,7 @@ use Illuminate\Database\Schema\Blueprint;
 use Magistrale\Logging\MigrationLoggerInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 
-abstract class AbstractMigrationDispatcher implements MigrationDispatcherInterface
+abstract class AbstractDispatcher implements DispatcherInterface
 {
     protected MigrateCommand $command;
 

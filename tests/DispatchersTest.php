@@ -4,20 +4,20 @@ use Cli\Commands\MigrateCommand;
 use PHPUnit\Framework\TestCase;
 use Framework\Application;
 use Illuminate\Database\Capsule\Manager as Capsule;
-use Magistrale\Dispatchers\Migration\UpMigrationDispatcher;
-use Magistrale\Dispatchers\Migration\DownMigrationDispatcher;
-use Magistrale\Dispatchers\Migration\CreateMigrationDispatcher;
-use Magistrale\Dispatchers\Migration\AbstractMigrationDispatcher;
+use Magistrale\Dispatchers\Migration\UpDispatcher;
+use Magistrale\Dispatchers\Migration\DownDispatcher;
+use Magistrale\Dispatchers\Migration\CreateDispatcher;
+use Magistrale\Dispatchers\Migration\AbstractDispatcher;
 use App\Models\Migration;
 use PHPUnit\Framework\Attributes\TestDox;
 use ReflectionClass;
 
-class MigrationDispatchersTest extends TestCase
+class DispatchersTest extends TestCase
 {
     private Capsule $capsule;
-    private UpMigrationDispatcher $upDispatcher;
-    private DownMigrationDispatcher $downDispatcher;
-    private CreateMigrationDispatcher $createDispatcher;
+    private UpDispatcher $upDispatcher;
+    private DownDispatcher $downDispatcher;
+    private CreateDispatcher $createDispatcher;
     private MigrateCommand $command;
 
     protected function setUp(): void
@@ -31,9 +31,9 @@ class MigrationDispatchersTest extends TestCase
         $container = $containerProperty->getValue($app);
 
         $this->capsule = $container->get(Capsule::class);
-        $this->upDispatcher = $container->get(UpMigrationDispatcher::class);
-        $this->downDispatcher = $container->get(DownMigrationDispatcher::class);
-        $this->createDispatcher = $container->get(CreateMigrationDispatcher::class);
+        $this->upDispatcher = $container->get(UpDispatcher::class);
+        $this->downDispatcher = $container->get(DownDispatcher::class);
+        $this->createDispatcher = $container->get(CreateDispatcher::class);
 
         $this->command = new MigrateCommand();
         $this->command->setContainer($container);
@@ -79,7 +79,7 @@ class MigrationDispatchersTest extends TestCase
         $this->assertEquals($count, $countSecond, 'Количество записей в БД не должно измениться при повторном запуске, так как новых миграций нет');
     }
 
-    #[TestDox('Проверяет корректность выполнения отката миграций через DownMigrationDispatcher')]
+    #[TestDox('Проверяет корректность выполнения отката миграций через DownDispatcher')]
     public function testRunDownExecutesCorrectly(): void
     {
         $this->capsule::schema()->dropIfExists('test_records');
@@ -169,7 +169,7 @@ class MigrationDispatchersTest extends TestCase
             if(file_exists($fileC)) unlink($fileC);
         }
     }
-    #[TestDox('Проверяет создание нового файла миграции через CreateMigrationDispatcher')]
+    #[TestDox('Проверяет создание нового файла миграции через CreateDispatcher')]
     public function testCreateMigrationExecutesCorrectly(): void
     {
         $payload = 'TestCreateUserTable';

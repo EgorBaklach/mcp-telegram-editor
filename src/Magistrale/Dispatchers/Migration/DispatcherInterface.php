@@ -2,7 +2,7 @@
 
 use Cli\Commands\MigrateCommand;
 
-interface MigrationDispatcherInterface
+interface DispatcherInterface
 {
     /**
      * Инициализирует диспетчер и подготавливает необходимые структуры (например, таблицу миграций).
