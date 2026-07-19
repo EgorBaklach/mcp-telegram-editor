@@ -1,10 +1,7 @@
 <?php
 
 use App\Strategies\McpJsonStrategy;
-use App\Tools\PingTool;
-use App\Tools\PublishTool;
-use App\Tools\DeleteTool;
-use App\Tools\DeleteByTextTool;
+use App\Tools\{PingTool, PublishTool, DeleteTool, DeleteByTextTool};
 use Cli\Commands\HelloWorldCommand;
 use Cli\Console\SymfonyConsole;
 use Framework\Emitters\SapiEmitter;

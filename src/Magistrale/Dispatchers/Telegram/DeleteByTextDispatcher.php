@@ -10,15 +10,11 @@ class DeleteByTextDispatcher extends AbstractDispatcher
     {
         if(!$payload) return false;
 
-        $post = TelegramPost::where('text', 'LIKE', '%' . (string) $payload . '%')->latest()->first();
-        if(!$post)
+        if(!$post = TelegramPost::where('text', 'LIKE', '%' . (string) $payload . '%')->latest()->first())
         {
             $this->logger->warning("Post with text '{$payload}' not found in database."); return false;
         }
 
-        if(!parent::dispatch($post->message_id)) return false;
-
-        $post->delete();
-        return true;
+        if(!parent::dispatch($post->message_id)) return false; $post->delete(); return true;
     }
 }

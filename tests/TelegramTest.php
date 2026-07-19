@@ -3,7 +3,7 @@
 use PHPUnit\Framework\TestCase;
 use Framework\Application;
 use Illuminate\Database\Capsule\Manager as Capsule;
-use Magistrale\HTTPClients\Telegram;
+use Magistrale\Clients\Telegram;
 use Magistrale\Dispatchers\Telegram\PublishDispatcher;
 use Magistrale\Dispatchers\Telegram\DeleteDispatcher;
 use Magistrale\Dispatchers\Telegram\DeleteByTextDispatcher;

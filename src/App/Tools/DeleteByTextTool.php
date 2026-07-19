@@ -9,10 +9,6 @@ final class DeleteByTextTool
 
     public function deleteByText(string $text): string
     {
-        if(!$text) throw new InvalidArgumentException('$text must not be empty');
-
-        if($this->dispatcher->dispatch($text)) return 'success';
-
-        return 'failed';
+        if(!$text) throw new InvalidArgumentException('$text must not be empty'); return $this->dispatcher->dispatch($text) ? 'success' : 'failed';
     }
 }

@@ -2,7 +2,7 @@
 
 use Illuminate\Database\Capsule\Manager as Capsule;
 use Magistrale\Dispatchers\DispatcherInterface;
-use Magistrale\HTTPClients\Telegram as Client;
+use Magistrale\Clients\Telegram as Client;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Log\LoggerInterface;
 use RuntimeException;
@@ -10,8 +10,9 @@ use Throwable;
 
 abstract class AbstractDispatcher implements DispatcherInterface
 {
+    protected ?ResponseInterface $response = null;
+
     protected const method = '';
-    protected ?ResponseInterface $lastResponse = null;
 
     public function __construct(protected readonly Capsule $capsule, protected readonly LoggerInterface $logger, protected readonly Client $client) {}
 
@@ -21,11 +22,11 @@ abstract class AbstractDispatcher implements DispatcherInterface
 
         try
         {
-            $this->lastResponse = $response = $this->client->{static::method}($payload);
+            $this->response = $this->client->{static::method}($payload);
 
-            if($response->getStatusCode() !== 200) throw new RuntimeException($response->getStatusCode());
+            if($this->response->getStatusCode() !== 200) throw new RuntimeException($this->response->getStatusCode());
 
-            $this->logger->info("Telegram API result: " . (string) $response->getBody()); return true;
+            $this->logger->info("Telegram API result: " . (string) $this->response->getBody()); return true;
         }
         catch(Throwable $e)
         {

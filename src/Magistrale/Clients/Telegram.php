@@ -1,4 +1,4 @@
-<?php namespace Magistrale\HTTPClients;
+<?php namespace Magistrale\Clients;
 
 use GuzzleHttp\Client;
 use League\Container\DefinitionContainerInterface;
