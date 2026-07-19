@@ -3,6 +3,7 @@
 use App\Strategies\McpJsonStrategy;
 use App\Tools\PingTool;
 use App\Tools\PublishTool;
+use App\Tools\DeleteTool;
 use Cli\Commands\HelloWorldCommand;
 use Cli\Console\SymfonyConsole;
 use Framework\Emitters\SapiEmitter;
@@ -12,9 +13,9 @@ use League\Container\Definition\{Definition, DefinitionAggregate};
 return new DefinitionAggregate([
     new Definition('dependencies', [
         'strategy' => McpJsonStrategy::class,
-        'console'  => SymfonyConsole::class,
-        'emitter'  => SapiEmitter::class,
-        'router'   => LeagueRouter::class
+        'console' => SymfonyConsole::class,
+        'emitter' => SapiEmitter::class,
+        'router' => LeagueRouter::class
     ]),
     new Definition('commands', [
         HelloWorldCommand::class,
@@ -22,9 +23,9 @@ return new DefinitionAggregate([
     ]),
     new Definition('mcp.settings', [
         'server_name' => 'mcp-telegram-editor',
-        'server_ver'  => '1.0.0',
+        'server_ver' => '1.0.0',
         'session_dir' => sys_get_temp_dir() . '/mcp-sessions',
-        'logging'     => [
+        'logging' => [
             'stream' => 'php://stderr',
         ]
     ]),
@@ -47,6 +48,7 @@ return new DefinitionAggregate([
     ]),
     new Definition('mcp.tools', [
         ['handler' => [PublishTool::class, 'publish'], 'name' => 'publish', 'description' => 'Publishes on the Telegram channel by post'],
-        ['handler' => [PingTool::class, 'ping'], 'name' => 'ping', 'description' => 'Returns "pong: {message}". Useful for connectivity tests.']
+        ['handler' => [PingTool::class, 'ping'], 'name' => 'ping', 'description' => 'Returns "pong: {message}". Useful for connectivity tests.'],
+        ['handler' => [DeleteTool::class, 'delete'], 'name' => 'delete', 'description' => 'Deletes a message from the Telegram channel by message ID']
     ])
 ]);

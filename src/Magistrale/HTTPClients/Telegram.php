@@ -22,4 +22,14 @@ class Telegram extends Client
             ],
         ]);
     }
+
+    public function deleteMessage(int $messageId): ResponseInterface
+    {
+        return $this->post('deleteMessage', [
+            'json' => [
+                'chat_id' => $this->config['chat_id'],
+                'message_id' => $messageId,
+            ],
+        ]);
+    }
 }

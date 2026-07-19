@@ -30,16 +30,16 @@ final class McpServiceProvider extends ProviderAbstract implements BootableServi
     public function register(): void
     {
         // 1. DefinitionContainer
-        $this->container()->addShared(DefinitionContainerInterface::class, $this->container());
+        $this->container()->add(DefinitionContainerInterface::class, $this->container());
 
         // 2. Logger
-        $this->container()->addShared(LoggerInterface::class, fn (): StderrLogger => new StderrLogger($this->settings['logging']['stream'] ?? 'php://stderr'));
+        $this->container()->add(LoggerInterface::class, fn (): StderrLogger => new StderrLogger($this->settings['logging']['stream'] ?? 'php://stderr'));
 
         // 3. StreamFactory
-        $this->container()->addShared(StreamFactoryInterface::class, StreamFactory::class);
+        $this->container()->add(StreamFactoryInterface::class, StreamFactory::class);
 
         // 4. MCP Server
-        $this->container()->addShared(Server::class, function (): Server
+        $this->container()->add(Server::class, function (): Server
         {
             $builder = (new Builder())
                 ->setServerInfo($this->settings['server_name'], $this->settings['server_ver'])

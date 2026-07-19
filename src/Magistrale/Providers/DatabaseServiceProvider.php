@@ -11,7 +11,7 @@ final class DatabaseServiceProvider extends ProviderAbstract
 
     public function register(): void
     {
-        $this->container()->addShared(Capsule::class, function (): Capsule
+        $this->container()->add(Capsule::class, function (): Capsule
         {
             $capsule = new Capsule;
 
