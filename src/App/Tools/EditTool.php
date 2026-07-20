@@ -9,19 +9,8 @@ final class EditTool
 
     public function edit(int $messageId, string $text): string
     {
-        if(!$messageId)
-        {
-            throw new InvalidArgumentException('$messageId must not be empty');
-        }
+        foreach(compact('messageId', 'text') as $key => $value) if(!$value) throw new InvalidArgumentException("{$key} must not be empty");
 
-        if(!$text)
-        {
-            throw new InvalidArgumentException('$text must not be empty');
-        }
-
-        return $this->dispatcher->dispatch([
-            'message_id' => $messageId,
-            'text' => $text,
-        ]) ? 'success' : 'failed';
+        return $this->dispatcher->dispatch(['message_id' => $messageId, 'text' => $text]) ? 'success' : 'failed';
     }
 }

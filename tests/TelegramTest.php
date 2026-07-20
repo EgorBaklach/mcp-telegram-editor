@@ -189,6 +189,29 @@ class TelegramTest extends TestCase
         TelegramPost::truncate();
     }
 
+    #[TestDox('Проверяет создание поста в БД через EditDispatcher, если его там изначально не было')]
+    public function testEditDispatcherCreatesPostIfNotFoundInDb(): void
+    {
+        TelegramPost::truncate();
+
+        $mockClient = $this->createMock(Telegram::class);
+        $mockClient->expects($this->once())
+            ->method('editMessage')
+            ->with($this->equalTo(['message_id' => 555, 'text' => 'Created on edit']))
+            ->willReturn(new Response(200, [], '{"ok":true,"result":{"message_id":555,"text":"Created on edit"}}'));
+
+        $this->container->add(Telegram::class, $mockClient);
+
+        $dispatcher = $this->container->get(EditDispatcher::class);
+        $this->assertTrue($dispatcher->dispatch(['message_id' => 555, 'text' => 'Created on edit']));
+
+        $post = TelegramPost::where('message_id', 555)->first();
+        $this->assertNotNull($post);
+        $this->assertEquals('Created on edit', $post->text);
+
+        TelegramPost::truncate();
+    }
+
     #[TestDox('Проверяет обработку ошибок при редактировании в EditDispatcher')]
     public function testEditDispatcherHandlesException(): void
     {

@@ -9,13 +9,6 @@ final class SearchPostsTool
 
     public function search(string $query): string
     {
-        if(!$query)
-        {
-            throw new InvalidArgumentException('$query must not be empty');
-        }
-
-        $this->dispatcher->dispatch($query);
-
-        return json_encode($this->dispatcher->getResults(), JSON_UNESCAPED_UNICODE);
+        if(!$query) throw new InvalidArgumentException('$query must not be empty'); $this->dispatcher->dispatch($query); return json_encode($this->dispatcher->getResults(), JSON_UNESCAPED_UNICODE);
     }
 }
