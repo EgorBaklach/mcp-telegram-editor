@@ -29,6 +29,99 @@
 
 ---
 
+## 🔧 Как реализованы Tools
+
+Проект использует конвенцию **php-mcp-server**: любой PHP-класс становится MCP-инструментом через регистрацию в `config/definitions.php`. Никаких интерфейсов или базовых классов реализовывать не нужно — достаточно публичного метода с типизированными параметрами.
+
+### Контракт (соглашение)
+
+| Требование | Описание |
+|---|---|
+| Класс | `final class`, расположен в `src/App/Tools/` |
+| Метод | Публичный, принимает строго типизированные параметры (`string`, `int`) |
+| Возврат | `string` — `'success'` при успехе, `'failed'` при ошибке диспетчера |
+| Зависимости | Диспетчер передаётся через constructor injection (DI-контейнер разрешает его автоматически) |
+| Валидация | Guard-clause в начале метода: `if(!$param) throw new InvalidArgumentException(...)` |
+
+### Регистрация в `config/definitions.php`
+
+Все инструменты регистрируются в определении `mcp.tools` как массив дескрипторов:
+
+```php
+new Definition('mcp.tools', [
+    ['handler' => [PublishTool::class, 'publish'],           'name' => 'publish',         'description' => '...'],
+    ['handler' => [PingTool::class, 'ping'],                 'name' => 'ping',            'description' => '...'],
+    ['handler' => [DeleteTool::class, 'delete'],             'name' => 'delete',          'description' => '...'],
+    ['handler' => [DeleteByTextTool::class, 'deleteByText'], 'name' => 'delete_by_text',  'description' => '...'],
+])
+```
+
+Каждый дескриптор содержит:
+- **`handler`** — `[ClassName::class, 'methodName']` — указатель на метод тула
+- **`name`** — имя инструмента, под которым он виден в MCP-клиенте (snake_case)
+- **`description`** — описание для LLM-агента (что делает инструмент)
+
+`McpServiceProvider` читает это определение и автоматически регистрирует каждый тул в `mcp/sdk`, разрешая зависимости класса через DI-контейнер.
+
+### Реализации
+
+**`PingTool`** — тул без зависимостей, только проверка связи:
+```php
+final class PingTool
+{
+    public function ping(string $message = 'hello'): string
+    {
+        return "pong: {$message}";
+    }
+}
+```
+
+**`PublishTool`** — получает диспетчер через DI, делегирует ему всю логику:
+```php
+final class PublishTool
+{
+    public function __construct(private PublishDispatcher $dispatcher) {}
+
+    public function publish(string $post): string
+    {
+        if(!$post) throw new InvalidArgumentException('$post must not be empty');
+        return $this->dispatcher->dispatch($post) ? 'success' : 'failed';
+    }
+}
+```
+
+**`DeleteTool`** — принимает `int $messageId`:
+```php
+final class DeleteTool
+{
+    public function __construct(private DeleteDispatcher $dispatcher) {}
+
+    public function delete(int $messageId): string
+    {
+        if(!$messageId) throw new InvalidArgumentException('$messageId must not be empty');
+        return $this->dispatcher->dispatch($messageId) ? 'success' : 'failed';
+    }
+}
+```
+
+**`DeleteByTextTool`** — поиск и удаление поста по подстроке:
+```php
+final class DeleteByTextTool
+{
+    public function __construct(private DeleteByTextDispatcher $dispatcher) {}
+
+    public function deleteByText(string $text): string
+    {
+        if(!$text) throw new InvalidArgumentException('$text must not be empty');
+        return $this->dispatcher->dispatch($text) ? 'success' : 'failed';
+    }
+}
+```
+
+> Чтобы добавить новый инструмент: создайте класс в `src/App/Tools/`, добавьте дескриптор в `mcp.tools` в `config/definitions.php` — больше ничего не нужно.
+
+---
+
 ## ⚙️ Диспетчеры (Dispatchers)
 
 Вся бизнес-логика разделена на диспетчеры, реализующие `Magistrale\Dispatchers\DispatcherInterface`.
