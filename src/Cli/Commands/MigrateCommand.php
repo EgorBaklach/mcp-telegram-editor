@@ -2,15 +2,11 @@
 
 use Framework\Contracts\Console\CommandInterface;
 use League\Container\DefinitionContainerInterface;
-use Magistrale\Dispatchers\Migration\AbstractDispatcher;
-use Magistrale\Dispatchers\Migration\CreateDispatcher;
-use Magistrale\Dispatchers\Migration\DownDispatcher;
-use Magistrale\Dispatchers\Migration\UpDispatcher;
+use Magistrale\Dispatchers\Migration\{UpDispatcher, DownDispatcher, CreateDispatcher};
 use Magistrale\Logging\MigrationLoggerInterface;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
-use Symfony\Component\Console\Input\InputInterface;
-use Symfony\Component\Console\Input\InputOption;
+use Symfony\Component\Console\Input\{InputInterface, InputOption};
 use Symfony\Component\Console\Output\OutputInterface;
 
 #[AsCommand(name: 'db:migrate', description: 'Управляет миграциями базы данных (применение и откат)')]

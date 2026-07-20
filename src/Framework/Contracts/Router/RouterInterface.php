@@ -1,7 +1,6 @@
 <?php namespace Framework\Contracts\Router;
 
-use Psr\Http\Message\ResponseInterface;
-use Psr\Http\Message\ServerRequestInterface;
+use Psr\Http\Message\{ResponseInterface, ServerRequestInterface};
 use Psr\Http\Server\MiddlewareInterface;
 
 interface RouterInterface

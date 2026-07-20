@@ -1,7 +1,5 @@
 <?php namespace Magistrale\Dispatchers\Telegram;
 
-use Throwable;
-
 use App\Models\TelegramPost;
 
 class PublishDispatcher extends AbstractDispatcher

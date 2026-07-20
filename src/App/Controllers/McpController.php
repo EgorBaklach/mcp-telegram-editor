@@ -2,10 +2,7 @@
 
 use Mcp\Server;
 use Mcp\Server\Transport\StreamableHttpTransport;
-use Psr\Http\Message\ResponseFactoryInterface;
-use Psr\Http\Message\ResponseInterface;
-use Psr\Http\Message\ServerRequestInterface;
-use Psr\Http\Message\StreamFactoryInterface;
+use Psr\Http\Message\{ResponseFactoryInterface, ResponseInterface, ServerRequestInterface, StreamFactoryInterface};
 
 final class McpController
 {

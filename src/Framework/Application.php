@@ -2,10 +2,9 @@
 
 use Framework\Contracts\Console\ConsoleInterface;
 use Framework\Contracts\Emitter\EmitterInterface;
-use League\Container\Container;
+use League\Container\{Container, ReflectionContainer};
 use League\Container\Definition\DefinitionAggregateInterface;
 use League\Container\Inflector\InflectorAggregateInterface;
-use League\Container\ReflectionContainer;
 use League\Container\ServiceProvider\ServiceProviderAggregateInterface;
 
 class Application

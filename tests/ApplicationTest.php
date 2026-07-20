@@ -5,13 +5,12 @@ use Framework\Application;
 use Framework\Contracts\Router\RouterInterface;
 use Framework\Contracts\Emitter\EmitterInterface;
 use League\Route\Strategy\StrategyInterface;
-use Magistrale\Dispatchers\Migration\UpDispatcher;
-use Magistrale\Dispatchers\Migration\DownDispatcher;
 use Psr\Http\Message\ResponseFactoryInterface;
 use Psr\Http\Message\StreamFactoryInterface;
 use Psr\Log\LoggerInterface;
 use PHPUnit\Framework\Attributes\TestDox;
 use Mcp\Server;
+use ReflectionClass;
 
 class ApplicationTest extends TestCase
 {
@@ -34,7 +33,7 @@ class ApplicationTest extends TestCase
     {
         $app = Application::make($this->config);
 
-        $reflector = new \ReflectionClass($app);
+        $reflector = new ReflectionClass($app);
         $containerProperty = $reflector->getProperty('container');
         $containerProperty->setAccessible(true);
         $container = $containerProperty->getValue($app);

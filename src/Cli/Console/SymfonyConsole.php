@@ -1,7 +1,6 @@
 <?php namespace Cli\Console;
 
-use Framework\Contracts\Console\CommandInterface;
-use Framework\Contracts\Console\ConsoleInterface;
+use Framework\Contracts\Console\{CommandInterface, ConsoleInterface};
 use League\Container\DefinitionContainerInterface;
 use Symfony\Component\Console\Application;
 use Symfony\Component\Console\Command\Command;

@@ -2,7 +2,7 @@
 
 use App\Strategies\McpJsonStrategy;
 use App\Tools\{PingTool, PublishTool, DeleteTool, DeleteByTextTool};
-use Cli\Commands\HelloWorldCommand;
+use Cli\Commands\{HelloWorldCommand, MigrateCommand};
 use Cli\Console\SymfonyConsole;
 use Framework\Emitters\SapiEmitter;
 use Framework\Routers\LeagueRouter;
@@ -17,7 +17,7 @@ return new DefinitionAggregate([
     ]),
     new Definition('commands', [
         HelloWorldCommand::class,
-        \Cli\Commands\MigrateCommand::class
+        MigrateCommand::class
     ]),
     new Definition('mcp.settings', [
         'server_name' => 'mcp-telegram-editor',

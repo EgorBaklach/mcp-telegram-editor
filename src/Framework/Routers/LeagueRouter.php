@@ -4,8 +4,7 @@ use Framework\Contracts\Router\RouterInterface;
 use League\Route\Middleware\MiddlewareAwareInterface;
 use League\Route\{Route, RouteCollectionInterface, RouteCollectionTrait, RouteGroup, Router};
 use League\Route\Strategy\{StrategyAwareInterface, StrategyInterface};
-use Psr\Http\Message\ResponseInterface;
-use Psr\Http\Message\ServerRequestInterface;
+use Psr\Http\Message\{ResponseInterface, ServerRequestInterface};
 use Psr\Http\Server\MiddlewareInterface;
 
 class LeagueRouter implements RouterInterface, RouteCollectionInterface

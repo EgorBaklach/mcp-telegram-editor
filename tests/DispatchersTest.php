@@ -4,13 +4,11 @@ use Cli\Commands\MigrateCommand;
 use PHPUnit\Framework\TestCase;
 use Framework\Application;
 use Illuminate\Database\Capsule\Manager as Capsule;
-use Magistrale\Dispatchers\Migration\UpDispatcher;
-use Magistrale\Dispatchers\Migration\DownDispatcher;
-use Magistrale\Dispatchers\Migration\CreateDispatcher;
-use Magistrale\Dispatchers\Migration\AbstractDispatcher;
+use Magistrale\Dispatchers\Migration\{UpDispatcher, DownDispatcher, CreateDispatcher};
 use App\Models\Migration;
 use PHPUnit\Framework\Attributes\TestDox;
 use ReflectionClass;
+use Symfony\Component\Console\Output\NullOutput;
 
 class DispatchersTest extends TestCase
 {
@@ -38,8 +36,7 @@ class DispatchersTest extends TestCase
         $this->command = new MigrateCommand();
         $this->command->setContainer($container);
         $this->command->construct();
-        $this->command->logger->setOutput(new \Symfony\Component\Console\Output\NullOutput());
-
+        $this->command->logger->setOutput(new NullOutput());
         $this->upDispatcher->build($this->command);
         $this->downDispatcher->build($this->command);
         $this->createDispatcher->build($this->command);

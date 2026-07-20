@@ -5,10 +5,10 @@ use Framework\Application;
 use App\Models\TestRecord;
 use Illuminate\Database\Capsule\Manager as Capsule;
 use Magistrale\Dispatchers\Migration\UpDispatcher;
-use Magistrale\Dispatchers\Migration\AbstractDispatcher;
-use Magistrale\Logging\MigrationLoggerInterface;
 use PHPUnit\Framework\Attributes\TestDox;
 use ReflectionClass;
+use Cli\Commands\MigrateCommand;
+use Symfony\Component\Console\Output\NullOutput;
 
 class DatabaseTest extends TestCase
 {
@@ -37,10 +37,10 @@ class DatabaseTest extends TestCase
         $this->capsule::schema()->dropIfExists('test_records');
         $this->capsule::schema()->dropIfExists('telegram_posts');
 
-        $command = new \Cli\Commands\MigrateCommand();
+        $command = new MigrateCommand();
         $command->setContainer($container);
         $command->construct();
-        $command->logger->setOutput(new \Symfony\Component\Console\Output\NullOutput());
+        $command->logger->setOutput(new NullOutput());
 
         $engine->build($command);
         $engine->dispatch();

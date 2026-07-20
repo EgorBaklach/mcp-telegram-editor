@@ -1,13 +1,11 @@
 <?php namespace Framework\Strategies;
 
 use Framework\Handlers\ErrorHandlerInterface;
-use Framework\Middlewares\ErrorResponseMiddleware;
-use Framework\Middlewares\ThrowableMiddleware;
+use Framework\Middlewares\{ErrorResponseMiddleware, ThrowableMiddleware};
 use League\Route\Http\Exception\{MethodNotAllowedException, NotFoundException};
 use League\Route\Route;
 use League\Route\{ContainerAwareInterface, ContainerAwareTrait, Strategy\AbstractStrategy};
-use Psr\Http\Message\ResponseInterface;
-use Psr\Http\Message\ServerRequestInterface;
+use Psr\Http\Message\{ResponseInterface, ServerRequestInterface};
 use Psr\Http\Server\MiddlewareInterface;
 
 class ApplicationStrategy extends AbstractStrategy implements ContainerAwareInterface

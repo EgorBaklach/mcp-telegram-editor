@@ -4,10 +4,11 @@ use PHPUnit\Framework\TestCase;
 use Framework\Application;
 use Illuminate\Database\Capsule\Manager as Capsule;
 use Magistrale\Clients\Telegram;
-use Magistrale\Dispatchers\Telegram\PublishDispatcher;
-use Magistrale\Dispatchers\Telegram\DeleteDispatcher;
-use Magistrale\Dispatchers\Telegram\DeleteByTextDispatcher;
+use Magistrale\Dispatchers\Telegram\{PublishDispatcher, DeleteDispatcher, DeleteByTextDispatcher};
+use Magistrale\Dispatchers\Migration\UpDispatcher;
 use App\Models\TelegramPost;
+use Cli\Commands\MigrateCommand;
+use Symfony\Component\Console\Output\NullOutput;
 use GuzzleHttp\Psr7\Response;
 use PHPUnit\Framework\Attributes\TestDox;
 use ReflectionClass;
@@ -30,11 +31,11 @@ class TelegramTest extends TestCase
 
         $this->capsule = $this->container->get(Capsule::class);
 
-        $engine = $this->container->get(\Magistrale\Dispatchers\Migration\UpDispatcher::class);
-        $command = new \Cli\Commands\MigrateCommand();
+        $engine = $this->container->get(UpDispatcher::class);
+        $command = new MigrateCommand();
         $command->setContainer($this->container);
         $command->construct();
-        $command->logger->setOutput(new \Symfony\Component\Console\Output\NullOutput());
+        $command->logger->setOutput(new NullOutput());
         $engine->build($command);
         $engine->dispatch();
     }
