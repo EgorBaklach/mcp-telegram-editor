@@ -19,6 +19,7 @@ class Telegram extends Client
             'json' => [
                 'chat_id' => $this->config['chat_id'],
                 'text' => $text,
+                'parse_mode' => 'HTML',
             ],
         ]);
     }
@@ -40,6 +41,7 @@ class Telegram extends Client
                 'chat_id' => $this->config['chat_id'],
                 'message_id' => $payload['message_id'],
                 'text' => $payload['text'],
+                'parse_mode' => 'HTML',
             ],
         ]);
     }
