@@ -25,7 +25,9 @@
 | `ping` | `message` | `string` | Проверка связи с MCP-сервером. Возвращает `"pong: {message}"`. |
 | `publish` | `post` | `string` | Публикует текстовый пост в Telegram-канал. Сохраняет `message_id` и текст в БД. |
 | `delete` | `messageId` | `integer` | Удаляет сообщение из Telegram-канала по его идентификатору. |
-| `delete_by_text` | `text` | `string` | Находит пост в БД по подстроке текста (LIKE) и удаляет его из Telegram-канала. |
+| `delete_by_text` | `text` | `string` | Находит пост в БД по подстроке текста (регистронезависимый ILIKE) и удаляет его из Telegram-канала. |
+| `edit` | `messageId`, `text` | `integer`, `string` | Редактирует текст опубликованного сообщения в Telegram по его ID и обновляет его в локальной БД. |
+| `search_posts` | `query` | `string` | Ищет опубликованные посты в локальной БД по ключевому слову/подстроке и возвращает список совпадений (их ID и тексты). |
 
 ---
 
@@ -53,6 +55,8 @@ new Definition('mcp.tools', [
     ['handler' => [PingTool::class, 'ping'],                 'name' => 'ping',            'description' => '...'],
     ['handler' => [DeleteTool::class, 'delete'],             'name' => 'delete',          'description' => '...'],
     ['handler' => [DeleteByTextTool::class, 'deleteByText'], 'name' => 'delete_by_text',  'description' => '...'],
+    ['handler' => [EditTool::class, 'edit'],                 'name' => 'edit',            'description' => '...'],
+    ['handler' => [SearchPostsTool::class, 'search'],        'name' => 'search_posts',    'description' => '...'],
 ])
 ```
 
@@ -118,6 +122,40 @@ final class DeleteByTextTool
 }
 ```
 
+**`EditTool`** — редактирование поста по `messageId`:
+```php
+final class EditTool
+{
+    public function __construct(private EditDispatcher $dispatcher) {}
+
+    public function edit(int $messageId, string $text): string
+    {
+        if(!$messageId) throw new InvalidArgumentException('$messageId must not be empty');
+        if(!$text) throw new InvalidArgumentException('$text must not be empty');
+        return $this->dispatcher->dispatch(['message_id' => $messageId, 'text' => $text]) ? 'success' : 'failed';
+    }
+}
+```
+
+**`SearchPostsTool`** — поиск постов в БД по подстроке:
+```php
+final class SearchPostsTool
+{
+    public function search(string $query): string
+    {
+        if(!$query) throw new InvalidArgumentException('$query must not be empty');
+
+        $posts = TelegramPost::where('text', 'ILIKE', '%' . $query . '%')
+            ->latest()
+            ->limit(10)
+            ->get(['message_id', 'text']);
+
+        return json_encode($posts->toArray(), JSON_UNESCAPED_UNICODE);
+    }
+}
+```
+
+
 > Чтобы добавить новый инструмент: создайте класс в `src/App/Tools/`, добавьте дескриптор в `mcp.tools` в `config/definitions.php` — больше ничего не нужно.
 
 ---
@@ -135,7 +173,8 @@ final class DeleteByTextTool
 | `AbstractDispatcher` | Базовый класс. Выполняет HTTP-запрос к Telegram API, логирует результат и хранит последний ответ в `$response`. |
 | `PublishDispatcher` | Отправляет сообщение через `sendMessage`. После успеха сохраняет запись (`message_id`, `text`) в таблицу `telegram_posts`. |
 | `DeleteDispatcher` | Удаляет сообщение через `deleteMessage` по его `message_id`. |
-| `DeleteByTextDispatcher` | Ищет последний пост в `telegram_posts` по подстроке текста (LIKE-запрос), вызывает `DeleteDispatcher` и удаляет запись из БД. |
+| `DeleteByTextDispatcher` | Ищет последний пост в `telegram_posts` по подстроке текста (регистронезависимый ILIKE-запрос с поддержкой GIN-индекса), вызывает `DeleteDispatcher` и удаляет запись из БД. |
+| `EditDispatcher` | Редактирует сообщение через `editMessageText` (обёртка `editMessage` в клиенте) по его `message_id`, затем обновляет текст в `telegram_posts`. |
 
 ### 🗄️ Миграционные диспетчеры (`Magistrale\Dispatchers\Migration`)
 
@@ -164,6 +203,7 @@ final class DeleteByTextTool
 |---|---|---|
 | `2026_07_16_000001_create_test_records_table.php` | `test_records` | Тестовая таблица для верификации подключения к БД. |
 | `2026_07_19_183914_create_telegram_posts_table.php` | `telegram_posts` | Таблица локального маппинга опубликованных Telegram-постов. |
+| `2026_07_20_121721_add_trgm_index_to_telegram_posts.php` | - | Включает расширение `pg_trgm` и создает триграммный GIN-индекс для быстрого поиска подстрок (`ILIKE`). |
 
 ---
 

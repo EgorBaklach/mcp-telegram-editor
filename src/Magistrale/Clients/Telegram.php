@@ -32,4 +32,15 @@ class Telegram extends Client
             ],
         ]);
     }
+
+    public function editMessage(array $payload): ResponseInterface
+    {
+        return $this->post('editMessageText', [
+            'json' => [
+                'chat_id' => $this->config['chat_id'],
+                'message_id' => $payload['message_id'],
+                'text' => $payload['text'],
+            ],
+        ]);
+    }
 }
