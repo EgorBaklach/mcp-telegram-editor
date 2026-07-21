@@ -7,3 +7,4 @@
 .zed
 .env
 _ide_helper.php
+.phpantom.toml
