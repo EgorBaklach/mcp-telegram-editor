@@ -27,27 +27,14 @@ class DatabaseTest extends TestCase
 
         // Получаем Capsule для прямой работы
         $this->capsule = $container->get(Capsule::class);
-
-        // Гарантируем, что миграции применены перед тестами БД
-        $engine = $container->get(UpDispatcher::class);
-
-
-
-        $this->capsule::schema()->dropIfExists('migrations');
-        $this->capsule::schema()->dropIfExists('test_records');
-        $this->capsule::schema()->dropIfExists('telegram_posts');
-
-        $command = new MigrateCommand();
-        $command->setContainer($container);
-        $command->construct();
-        $command->logger->setOutput(new NullOutput());
-
-        $engine->build($command);
-        $engine->dispatch();
+        $this->capsule->getConnection()->beginTransaction();
     }
 
     protected function tearDown(): void
     {
+        if ($this->capsule->getConnection()->transactionLevel() > 0) {
+            $this->capsule->getConnection()->rollBack();
+        }
         $this->capsule->getConnection()->disconnect();
         parent::tearDown();
     }
@@ -58,10 +45,7 @@ class DatabaseTest extends TestCase
         // 1. Проверяем, что соединение установлено
         $this->assertNotNull($this->capsule->getConnection()->getPdo());
 
-        // 2. Очищаем таблицу перед тестом
-        TestRecord::truncate();
-
-        // 3. Создаем тестовую запись через Eloquent
+        // 2. Создаем тестовую запись через Eloquent
         $messageText = 'Тестовое сообщение для проверки БД';
         $record = TestRecord::create([
             'message' => $messageText,
@@ -70,12 +54,9 @@ class DatabaseTest extends TestCase
         $this->assertNotNull($record->id);
         $this->assertEquals($messageText, $record->message);
 
-        // 4. Считываем запись из базы данных
+        // 3. Считываем запись из базы данных
         $retrieved = TestRecord::find($record->id);
         $this->assertInstanceOf(TestRecord::class, $retrieved);
         $this->assertEquals($messageText, $retrieved->message);
-
-        // 5. Очищаем таблицу после успешного теста
-        TestRecord::truncate();
     }
 }

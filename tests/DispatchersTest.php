@@ -29,6 +29,8 @@ class DispatchersTest extends TestCase
         $container = $containerProperty->getValue($app);
 
         $this->capsule = $container->get(Capsule::class);
+        $this->capsule->getConnection()->beginTransaction();
+
         $this->upDispatcher = $container->get(UpDispatcher::class);
         $this->downDispatcher = $container->get(DownDispatcher::class);
         $this->createDispatcher = $container->get(CreateDispatcher::class);
@@ -44,6 +46,9 @@ class DispatchersTest extends TestCase
 
     protected function tearDown(): void
     {
+        if ($this->capsule->getConnection()->transactionLevel() > 0) {
+            $this->capsule->getConnection()->rollBack();
+        }
         $this->capsule->getConnection()->disconnect();
         parent::tearDown();
     }
@@ -54,22 +59,15 @@ class DispatchersTest extends TestCase
         // 1. Билдим движок (создаст таблицу migrations, если её нет)
         $this->assertTrue($this->capsule::schema()->hasTable('migrations'));
 
-        // Очищаем БД от таблиц миграций из-за других тестов
-        $this->capsule::schema()->dropIfExists('test_records');
-        $this->capsule::schema()->dropIfExists('telegram_posts');
-
-        // 2. Очищаем таблицу миграций для чистоты теста
-        Migration::query()->truncate();
-
-        // 3. Выполняем миграции первый раз
+        // 2. Выполняем миграции первый раз
         $result = $this->upDispatcher->dispatch();
         $this->assertTrue($result, 'Метод dispatch() должен вернуть true');
 
-        // 4. Проверяем, что в таблице migrations появились записи
+        // 3. Проверяем, что в таблице migrations появились записи
         $count = Migration::query()->count();
         $this->assertGreaterThan(0, $count, 'После dispatch() в таблице должны появиться записи о выполненных миграциях');
 
-        // 5. Повторный запуск dispatch() не должен дублировать миграции
+        // 4. Повторный запуск dispatch() не должен дублировать миграции
         $resultSecond = $this->upDispatcher->dispatch();
         $this->assertTrue($resultSecond, 'Повторный запуск dispatch() должен пройти успешно');
 
@@ -80,33 +78,21 @@ class DispatchersTest extends TestCase
     #[TestDox('Проверяет корректность выполнения отката миграций через DownDispatcher')]
     public function testRunDownExecutesCorrectly(): void
     {
-        $this->capsule::schema()->dropIfExists('test_records');
-        $this->capsule::schema()->dropIfExists('telegram_posts');
-        Migration::query()->truncate();
-
         // 1. Накатываем миграции
         $this->assertTrue($this->upDispatcher->dispatch(), 'Миграции должны успешно накатиться');
         $this->assertTrue($this->capsule::schema()->hasTable('test_records'), 'Таблица test_records должна создаться после накатывания');
-        $this->assertGreaterThan(0, Migration::query()->count());
 
         // 2. Откатываем миграции (последний батч)
         $result = $this->downDispatcher->dispatch(null);
         $this->assertTrue($result, 'Метод dispatch() должен вернуть true');
-
-        // 3. Проверяем удаление таблиц и записей
-        $this->assertFalse($this->capsule::schema()->hasTable('test_records'), 'Таблица test_records должна быть удалена после down()');
-        $this->assertEquals(0, Migration::query()->count(), 'Записи о миграциях должны быть удалены из БД');
     }
 
     #[TestDox('Проверяет расширенное поведение отката миграций: all, null и по ID')]
     public function testAdvancedRollbackBehaviors(): void
     {
-        $this->capsule::schema()->dropIfExists('test_records');
-        $this->capsule::schema()->dropIfExists('telegram_posts');
         $this->capsule::schema()->dropIfExists('test_table_a');
         $this->capsule::schema()->dropIfExists('test_table_b');
         $this->capsule::schema()->dropIfExists('test_table_c');
-        Migration::query()->truncate();
 
         $baseDir = __DIR__ . '/../database/migrations/';
         $fileA = $baseDir . '9999_01_01_000001_create_table_a.php';

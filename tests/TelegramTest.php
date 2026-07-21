@@ -32,18 +32,14 @@ class TelegramTest extends TestCase
         $this->container = $containerProperty->getValue($app);
 
         $this->capsule = $this->container->get(Capsule::class);
-
-        $engine = $this->container->get(UpDispatcher::class);
-        $command = new MigrateCommand();
-        $command->setContainer($this->container);
-        $command->construct();
-        $command->logger->setOutput(new NullOutput());
-        $engine->build($command);
-        $engine->dispatch();
+        $this->capsule->getConnection()->beginTransaction();
     }
 
     protected function tearDown(): void
     {
+        if ($this->capsule->getConnection()->transactionLevel() > 0) {
+            $this->capsule->getConnection()->rollBack();
+        }
         $this->capsule->getConnection()->disconnect();
         parent::tearDown();
     }
@@ -109,8 +105,6 @@ class TelegramTest extends TestCase
     #[TestDox('Проверяет, что PublishDispatcher сохраняет опубликованное сообщение в БД')]
     public function testPublishDispatcherSavesToDb(): void
     {
-        TelegramPost::truncate();
-
         $mockClient = $this->createMock(Telegram::class);
         $mockClient->expects($this->once())
             ->method('sendMessage')
@@ -125,15 +119,12 @@ class TelegramTest extends TestCase
         $post = TelegramPost::where('message_id', 999)->first();
         $this->assertNotNull($post);
         $this->assertEquals('Hello DB Test', $post->text);
-        
-        TelegramPost::truncate();
     }
 
     #[TestDox('Проверяет успешное удаление сообщения по тексту через DeleteByTextDispatcher')]
     public function testDeleteByTextDispatcherExecutesSuccessfully(): void
     {
-        TelegramPost::truncate();
-        TelegramPost::create(['message_id' => 888, 'text' => 'Delete me by text']);
+        TelegramPost::create(['message_id' => 888, 'text' => 'Delete me by unique_text_key']);
 
         $mockClient = $this->createMock(Telegram::class);
         $mockClient->expects($this->once())
@@ -144,31 +135,26 @@ class TelegramTest extends TestCase
         $this->container->add(Telegram::class, $mockClient);
 
         $dispatcher = $this->container->get(DeleteByTextDispatcher::class);
-        $this->assertTrue($dispatcher->dispatch('me by'));
+        $this->assertTrue($dispatcher->dispatch('unique_text_key'));
 
         $this->assertNull(TelegramPost::where('message_id', 888)->first());
-        
-        TelegramPost::truncate();
     }
 
     #[TestDox('Проверяет возвращение false в DeleteByTextDispatcher, если текст не найден в БД')]
     public function testDeleteByTextDispatcherReturnsFalseIfNotFound(): void
     {
-        TelegramPost::truncate();
-
         $mockClient = $this->createMock(Telegram::class);
         $mockClient->expects($this->never())->method('deleteMessage');
 
         $this->container->add(Telegram::class, $mockClient);
 
         $dispatcher = $this->container->get(DeleteByTextDispatcher::class);
-        $this->assertFalse($dispatcher->dispatch('Nonexistent text'));
+        $this->assertFalse($dispatcher->dispatch('Nonexistent_unique_random_text_key'));
     }
 
     #[TestDox('Проверяет успешное редактирование поста через EditDispatcher')]
     public function testEditDispatcherExecutesSuccessfully(): void
     {
-        TelegramPost::truncate();
         TelegramPost::create(['message_id' => 777, 'text' => 'Old content']);
 
         $mockClient = $this->createMock(Telegram::class);
@@ -185,15 +171,11 @@ class TelegramTest extends TestCase
         $post = TelegramPost::where('message_id', 777)->first();
         $this->assertNotNull($post);
         $this->assertEquals('New content', $post->text);
-
-        TelegramPost::truncate();
     }
 
     #[TestDox('Проверяет создание поста в БД через EditDispatcher, если его там изначально не было')]
     public function testEditDispatcherCreatesPostIfNotFoundInDb(): void
     {
-        TelegramPost::truncate();
-
         $mockClient = $this->createMock(Telegram::class);
         $mockClient->expects($this->once())
             ->method('editMessage')
@@ -208,8 +190,6 @@ class TelegramTest extends TestCase
         $post = TelegramPost::where('message_id', 555)->first();
         $this->assertNotNull($post);
         $this->assertEquals('Created on edit', $post->text);
-
-        TelegramPost::truncate();
     }
 
     #[TestDox('Проверяет обработку ошибок при редактировании в EditDispatcher')]
@@ -229,13 +209,12 @@ class TelegramTest extends TestCase
     #[TestDox('Проверяет успешный поиск постов по подстроке через SearchPostsTool')]
     public function testSearchPostsToolExecutesSuccessfully(): void
     {
-        TelegramPost::truncate();
-        TelegramPost::create(['message_id' => 111, 'text' => 'First search target']);
-        TelegramPost::create(['message_id' => 222, 'text' => 'Second search query']);
+        TelegramPost::create(['message_id' => 111, 'text' => 'First search_term_xyz target']);
+        TelegramPost::create(['message_id' => 222, 'text' => 'Second search_term_xyz query']);
         TelegramPost::create(['message_id' => 333, 'text' => 'Unrelated content']);
 
         $tool = $this->container->get(SearchPostsTool::class);
-        $result = $tool->search('search');
+        $result = $tool->search('search_term_xyz');
 
         $data = json_decode($result, true);
         $this->assertCount(2, $data);
@@ -244,8 +223,6 @@ class TelegramTest extends TestCase
         $this->assertContains(111, $ids);
         $this->assertContains(222, $ids);
         $this->assertNotContains(333, $ids);
-
-        TelegramPost::truncate();
     }
 
     #[TestDox('Проверяет генерацию исключения в SearchPostsTool при пустом запросе')]
@@ -259,18 +236,15 @@ class TelegramTest extends TestCase
     #[TestDox('Проверяет успешное выполнение SearchPostsDispatcher и реализацию ResultInterface')]
     public function testSearchPostsDispatcherExecutesSuccessfully(): void
     {
-        TelegramPost::truncate();
-        TelegramPost::create(['message_id' => 444, 'text' => 'Searchable dispatcher text']);
+        TelegramPost::create(['message_id' => 444, 'text' => 'Searchable dispatcher_term_abc text']);
 
         $dispatcher = $this->container->get(SearchPostsDispatcher::class);
         $this->assertInstanceOf(ResultInterface::class, $dispatcher);
-        $this->assertTrue($dispatcher->dispatch('dispatcher'));
+        $this->assertTrue($dispatcher->dispatch('dispatcher_term_abc'));
 
         $results = $dispatcher->getResults();
         $this->assertCount(1, $results);
         $this->assertEquals(444, $results[0]['message_id']);
-        $this->assertEquals('Searchable dispatcher text', $results[0]['text']);
-
-        TelegramPost::truncate();
+        $this->assertEquals('Searchable dispatcher_term_abc text', $results[0]['text']);
     }
 }
