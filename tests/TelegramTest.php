@@ -5,7 +5,7 @@ use Framework\Application;
 use Illuminate\Database\Capsule\Manager as Capsule;
 use Magistrale\Clients\Telegram;
 use Magistrale\Dispatchers\Telegram\{PublishDispatcher, DeleteDispatcher, DeleteByTextDispatcher, EditDispatcher, SearchPostsDispatcher};
-use Magistrale\Dispatchers\Telegram\ResultInterface;
+use Magistrale\Dispatchers\ResultInterface;
 use Magistrale\Dispatchers\Migration\UpDispatcher;
 use App\Models\TelegramPost;
 use App\Tools\SearchPostsTool;

@@ -1,7 +1,7 @@
 <?php
 
 use App\Strategies\McpJsonStrategy;
-use App\Tools\{PingTool, PublishTool, DeleteTool, DeleteByTextTool, EditTool, SearchPostsTool};
+use App\Tools\{PingTool, PublishTool, DeleteTool, DeleteByTextTool, EditTool, SearchPostsTool, CheckNewModelsTool, MarkPublishedTool};
 use Cli\Commands\{HelloWorldCommand, MigrateCommand};
 use Cli\Console\SymfonyConsole;
 use Framework\Emitters\SapiEmitter;
@@ -32,6 +32,10 @@ return new DefinitionAggregate([
         'chat_id' => getenv('TELEGRAM_CHAT_ID'),
         'timeout' => 10.0
     ]),
+    new Definition('openrouter.configs', [
+        'base_uri' => 'https://openrouter.ai/api/v1/',
+        'timeout' => 10.0,
+    ]),
     new Definition('database.configs', [
         'driver' => 'pgsql',
         'host' => getenv('DB_HOST'),
@@ -50,6 +54,8 @@ return new DefinitionAggregate([
         ['handler' => [DeleteTool::class, 'delete'], 'name' => 'delete', 'description' => 'Deletes a message from the Telegram channel by message ID'],
         ['handler' => [DeleteByTextTool::class, 'deleteByText'], 'name' => 'delete_by_text', 'description' => 'Deletes a message from the Telegram channel by searching its text content in DB'],
         ['handler' => [EditTool::class, 'edit'], 'name' => 'edit', 'description' => 'Edits an existing Telegram channel post by its message ID'],
-        ['handler' => [SearchPostsTool::class, 'search'], 'name' => 'search_posts', 'description' => 'Searches published Telegram channel posts in DB by keyword/substring and returns their message IDs and text']
+        ['handler' => [SearchPostsTool::class, 'search'], 'name' => 'search_posts', 'description' => 'Searches published Telegram channel posts in DB by keyword/substring and returns their message IDs and text'],
+        ['handler' => [CheckNewModelsTool::class, 'checkNewModels'], 'name' => 'check_new_models', 'description' => 'Syncs free OpenRouter models with DB and returns JSON with newly discovered models data (does not publish, agent handles publishing)'],
+        ['handler' => [MarkPublishedTool::class, 'markPublished'], 'name' => 'mark_published', 'description' => 'Marks an OpenRouter model as published in DB by its model_id after agent publishes the post']
     ])
 ]);

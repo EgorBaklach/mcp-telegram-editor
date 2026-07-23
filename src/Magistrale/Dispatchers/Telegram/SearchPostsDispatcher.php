@@ -1,5 +1,6 @@
 <?php namespace Magistrale\Dispatchers\Telegram;
 
+use Magistrale\Dispatchers\ResultInterface;
 use App\Models\TelegramPost;
 
 class SearchPostsDispatcher extends AbstractDispatcher implements ResultInterface

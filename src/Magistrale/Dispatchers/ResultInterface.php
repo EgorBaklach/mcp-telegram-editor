@@ -1,4 +1,4 @@
-<?php namespace Magistrale\Dispatchers\Telegram;
+<?php namespace Magistrale\Dispatchers;
 
 interface ResultInterface
 {
