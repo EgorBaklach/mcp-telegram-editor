@@ -2,10 +2,8 @@
 
 use App\Models\TelegramPost;
 
-class DeleteByTextDispatcher extends AbstractDispatcher
+class DeleteByTextDispatcher extends DeleteDispatcher
 {
-    protected const method = 'deleteMessage';
-
     public function dispatch(mixed $payload = null): bool
     {
         if(!$payload) return false;
@@ -15,6 +13,6 @@ class DeleteByTextDispatcher extends AbstractDispatcher
             $this->logger->warning("Post with text '{$payload}' not found in database."); return false;
         }
 
-        if(!parent::dispatch($post->message_id)) return false; $post->delete(); return true;
+        return parent::dispatch($post->message_id);
     }
 }
