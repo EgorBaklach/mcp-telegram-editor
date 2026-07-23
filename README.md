@@ -12,7 +12,7 @@
 
 * **DI-Контейнер**: `League\Container` с полной поддержкой auto-wiring (автоматического разрешения зависимостей).
 * **База данных**: Автономный Eloquent (`Capsule\Manager` из Laravel) для ленивой и оптимизированной работы с PostgreSQL.
-* **HTTP-клиент**: `Magistrale\Clients\Telegram` — обёртка над `GuzzleHttp\Client` для взаимодействия с Telegram Bot API.
+* **HTTP-клиенты**: `Magistrale\Clients\Telegram` и `Magistrale\Clients\OpenRouter` — обёртки над `GuzzleHttp\Client` для взаимодействия с Telegram Bot API и OpenRouter API.
 * **Паттерн Dispatcher**: Разделение бизнес-логики по диспетчерам (миграции, интеграции с Telegram), реализующим единый `DispatcherInterface`.
 * **MCP-сервер**: Динамическая регистрация инструментов (Tools) на базе `mcp/sdk`.
 
@@ -28,6 +28,8 @@
 | `delete_by_text` | `text` | `string` | Находит пост в БД по подстроке текста (регистронезависимый ILIKE) и удаляет его из Telegram-канала. |
 | `edit` | `messageId`, `text` | `integer`, `string` | Редактирует текст опубликованного сообщения в Telegram по его ID и обновляет его в локальной БД. |
 | `search_posts` | `query` | `string` | Ищет опубликованные посты в локальной БД по ключевому слову/подстроке и возвращает список совпадений (их ID и тексты). |
+| `check_new_models` | — | — | Синхронизирует бесплатные модели OpenRouter с БД и возвращает JSON с данными новых моделей (не публикует — агент обрабатывает публикацию самостоятельно). |
+| `mark_published` | `modelId` | `string` | Помечает модель OpenRouter как опубликованную в БД по её `model_id` после публикации поста агентом. |
 
 ---
 
@@ -51,12 +53,14 @@
 
 ```php
 new Definition('mcp.tools', [
-    ['handler' => [PublishTool::class, 'publish'],           'name' => 'publish',         'description' => '...'],
-    ['handler' => [PingTool::class, 'ping'],                 'name' => 'ping',            'description' => '...'],
-    ['handler' => [DeleteTool::class, 'delete'],             'name' => 'delete',          'description' => '...'],
-    ['handler' => [DeleteByTextTool::class, 'deleteByText'], 'name' => 'delete_by_text',  'description' => '...'],
-    ['handler' => [EditTool::class, 'edit'],                 'name' => 'edit',            'description' => '...'],
-    ['handler' => [SearchPostsTool::class, 'search'],        'name' => 'search_posts',    'description' => '...'],
+    ['handler' => [PublishTool::class, 'publish'],               'name' => 'publish',          'description' => '...'],
+    ['handler' => [PingTool::class, 'ping'],                     'name' => 'ping',             'description' => '...'],
+    ['handler' => [DeleteTool::class, 'delete'],                 'name' => 'delete',           'description' => '...'],
+    ['handler' => [DeleteByTextTool::class, 'deleteByText'],     'name' => 'delete_by_text',   'description' => '...'],
+    ['handler' => [EditTool::class, 'edit'],                     'name' => 'edit',             'description' => '...'],
+    ['handler' => [SearchPostsTool::class, 'search'],            'name' => 'search_posts',     'description' => '...'],
+    ['handler' => [CheckNewModelsTool::class, 'checkNewModels'], 'name' => 'check_new_models', 'description' => '...'],
+    ['handler' => [MarkPublishedTool::class, 'markPublished'],   'name' => 'mark_published',   'description' => '...'],
 ])
 ```
 
@@ -176,6 +180,13 @@ final class SearchPostsTool
 | `DeleteByTextDispatcher` | Ищет последний пост в `telegram_posts` по подстроке текста (регистронезависимый ILIKE-запрос с поддержкой GIN-индекса), вызывает `DeleteDispatcher` и удаляет запись из БД. |
 | `EditDispatcher` | Редактирует сообщение через `editMessageText` (обёртка `editMessage` в клиенте) по его `message_id`, затем обновляет текст в `telegram_posts`. |
 
+### 📦 OpenRouter-диспетчеры (`Magistrale\Dispatchers\OpenRouter`)
+
+| Диспетчер | Описание |
+|---|---|
+| `AbstractDispatcher` | Базовый класс. Выполняет HTTP-запрос к OpenRouter API, логирует результат, хранит массив `$results` и реализует `ResultInterface`. |
+| `SyncDispatcher` | Запрашивает список моделей, фильтрует бесплатные (pricing `prompt === '0'`), сохраняет новые в `openrouter_models`. Для существующих моделей дозаполняет `released_at`. |
+
 ### 🗄️ Миграционные диспетчеры (`Magistrale\Dispatchers\Migration`)
 
 Реализуют паттерн Strategy для управления схемой базы данных через CLI-команду `db:migrate`.
@@ -196,6 +207,7 @@ final class SearchPostsTool
 |---|---|---|---|
 | `App\Models\Migration` | `migrations` | `id`, `migration`, `batch` | История выполненных миграций. Управляется автоматически системой миграций. |
 | `App\Models\TelegramPost` | `telegram_posts` | `id`, `message_id`, `text`, `timestamps` | Локальная копия опубликованных постов Telegram. Позволяет реализовать поиск и удаление по тексту. |
+| `App\Models\OpenRouterModel` | `openrouter_models` | `id`, `model_id`, `name`, `accessible`, `context_length`, `modality`, `published`, `released_at`, `timestamps` | Локальный scope бесплатных моделей OpenRouter. Флаг `published` отслеживает, опубликована ли модель на канале. |
 
 ### Миграции (`database/migrations/`)
 
@@ -204,6 +216,8 @@ final class SearchPostsTool
 | `2026_07_16_000001_create_test_records_table.php` | `test_records` | Тестовая таблица для верификации подключения к БД. |
 | `2026_07_19_183914_create_telegram_posts_table.php` | `telegram_posts` | Таблица локального маппинга опубликованных Telegram-постов. |
 | `2026_07_20_121721_add_trgm_index_to_telegram_posts.php` | - | Включает расширение `pg_trgm` и создает триграммный GIN-индекс для быстрого поиска подстрок (`ILIKE`). |
+| `2026_07_23_163419_create_openrouter_models_table.php` | `openrouter_models` | Таблица для хранения бесплатных моделей OpenRouter (model_id, name, context_length, modality, published). |
+| `2026_07_23_172442_add_released_at_to_openrouter_models.php` | - | Добавляет колонку `released_at` для хранения даты выпуска модели из API OpenRouter. |
 
 ---
 
@@ -293,6 +307,7 @@ docker exec mcp-telegram-editor vendor/bin/phpunit --testdox
 | `McpController` | Корректный ответ 204 на OPTIONS-запросы (CORS preflight). |
 | `McpJsonStrategy` | Установка CORS-заголовков. |
 | `Telegram` | Publish, Delete, DeleteByText диспетчеры с мок-объектами HTTP-клиента. Запись в БД при публикации. Поиск и удаление по подстроке текста. |
+| `OpenRouter` | SyncDispatcher (обнаружение free-моделей, фильтрация paid, дедупликация). CheckNewModelsTool (возврат JSON). MarkPublishedTool (пометка модели). 10 тестов, 45 assertions. |
 
 > Тесты Telegram-диспетчеров используют изолированные мок-объекты HTTP-клиента (PHPUnit MockBuilder). Реальные запросы к Telegram API не выполняются.
 
@@ -313,18 +328,19 @@ docker exec mcp-telegram-editor vendor/bin/phpunit --testdox
 │   ├── App/
 │   │   ├── Controllers/      # McpController
 │   │   ├── Middlewares/      # CORS, Credentials, Profiler
-│   │   ├── Models/           # Eloquent-модели (Migration, TelegramPost)
+│   │   ├── Models/           # Eloquent-модели (Migration, TelegramPost, OpenRouterModel)
 │   │   ├── Strategies/       # McpJsonStrategy
-│   │   └── Tools/            # MCP-инструменты (Ping, Publish, Delete, DeleteByText)
+│   │   └── Tools/            # MCP-инструменты (Ping, Publish, Delete, ..., CheckNewModels, MarkPublished)
 │   ├── Cli/
 │   │   ├── Commands/         # CLI-команды (HelloWorld, Migrate)
 │   │   ├── Console/          # SymfonyConsole
 │   │   └── Providers/        # CLI ServiceProvider
 │   ├── Framework/            # Ядро фреймворка (Application, Router, Emitter, DI)
 │   └── Magistrale/
-│       ├── Clients/          # HTTP-клиенты (Telegram)
+│       ├── Clients/          # HTTP-клиенты (Telegram, OpenRouter)
 │       ├── Dispatchers/
 │       │   ├── Migration/    # UpDispatcher, DownDispatcher, CreateDispatcher
+│       │   ├── OpenRouter/   # SyncDispatcher
 │       │   └── Telegram/     # PublishDispatcher, DeleteDispatcher, DeleteByTextDispatcher
 │       ├── Logging/          # MigrationLogger
 │       └── Providers/        # DatabaseServiceProvider, McpServiceProvider
