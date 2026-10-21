@@ -10,12 +10,15 @@ class SyncDispatcher extends AbstractDispatcher implements ResultInterface
 
     public function dispatch(mixed $payload = null): bool
     {
+        $this->results = [];
+
         try
         {
-            if(($response = $this->client->getModels())->getStatusCode() !== 200) return false;
+            $response = $this->client->getModels(); if($response->getStatusCode() !== 200) return false;
 
-            $data = json_decode((string) $response->getBody(), true);
-            $existingIds = OpenRouterModel::pluck('model_id')->all();
+            $data = json_decode((string) $response->getBody(), true, 512, JSON_BIGINT_AS_STRING);
+
+            $existing = OpenRouterModel::query()->select(['model_id', 'released_at'])->pluck('released_at', 'model_id')->all();
 
             foreach($data['data'] ?? [] as $model)
             {
@@ -23,9 +26,10 @@ class SyncDispatcher extends AbstractDispatcher implements ResultInterface
 
                 $releasedAt = isset($model['created']) ? date('Y-m-d H:i:s', $model['created']) : null;
 
-                if(in_array($model['id'], $existingIds, true))
+                if(array_key_exists($model['id'], $existing))
                 {
-                    if($releasedAt) OpenRouterModel::where('model_id', $model['id'])->whereNull('released_at')->update(['released_at' => $releasedAt]);
+                    if($releasedAt && $existing[$model['id']] === null) OpenRouterModel::where('model_id', $model['id'])->whereNull('released_at')->update(['released_at' => $releasedAt]);
+                    
                     continue;
                 }
 
@@ -55,7 +59,7 @@ class SyncDispatcher extends AbstractDispatcher implements ResultInterface
         }
         catch(Throwable $e)
         {
-            $this->logger->error("OpenRouter sync failed: " . (string) $e);
+            $this->logger->error('OpenRouter sync failed: '.(string) $e);
         }
 
         return false;

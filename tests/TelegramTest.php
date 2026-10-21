@@ -19,11 +19,12 @@ use RuntimeException;
 class TelegramTest extends TestCase
 {
     private Capsule $capsule;
+
     private $container;
 
     protected function setUp(): void
     {
-        $config = require __DIR__ . '/../bootstrap/machine.php';
+        $config = require __DIR__.'/../bootstrap/machine.php';
         $app = Application::make($config);
 
         $reflector = new ReflectionClass($app);

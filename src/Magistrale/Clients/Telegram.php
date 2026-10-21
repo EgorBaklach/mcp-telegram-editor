@@ -10,16 +10,17 @@ class Telegram extends Client
 
     public function __construct(private DefinitionContainerInterface $container)
     {
-        $this->config = $this->container->get('telegram.configs'); parent::__construct($this->config);
+        $this->config = $this->container->get('telegram'); parent::__construct($this->config);
     }
 
     public function sendMessage(string $text): ResponseInterface
     {
-        return $this->post('sendMessage', [
+        return $this->post('sendRichMessage', [
             'json' => [
                 'chat_id' => $this->config['chat_id'],
-                'text' => $text,
-                'parse_mode' => 'HTML',
+                'rich_message' => [
+                    'html' => $text,
+                ],
             ],
         ]);
     }
@@ -40,8 +41,9 @@ class Telegram extends Client
             'json' => [
                 'chat_id' => $this->config['chat_id'],
                 'message_id' => $payload['message_id'],
-                'text' => $payload['text'],
-                'parse_mode' => 'HTML',
+                'rich_message' => [
+                    'html' => $payload['text'],
+                ],
             ],
         ]);
     }

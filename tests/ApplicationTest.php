@@ -18,7 +18,7 @@ class ApplicationTest extends TestCase
 
     protected function setUp(): void
     {
-        $this->config = require __DIR__ . '/../bootstrap/machine.php';
+        $this->config = require __DIR__.'/../bootstrap/machine.php';
     }
 
     #[TestDox('Проверяет успешный запуск и инициализацию контейнера приложения')]

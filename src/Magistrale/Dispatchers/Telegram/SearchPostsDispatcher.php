@@ -9,7 +9,7 @@ class SearchPostsDispatcher extends AbstractDispatcher implements ResultInterfac
 
     public function dispatch(mixed $payload = null): bool
     {
-        if(!$payload) return false; $this->results = TelegramPost::where('text', 'ILIKE', '%' . (string) $payload . '%')->latest()->limit(10)->get(['message_id', 'text'])->all(); return true;
+        $this->results = TelegramPost::where('text', 'ILIKE', '%'.addcslashes((string) $payload, '%_\\').'%')->latest()->limit(10)->get(['message_id', 'text'])->all(); return true;
     }
 
     public function getResults(): array

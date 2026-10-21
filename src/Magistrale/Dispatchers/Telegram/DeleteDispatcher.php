@@ -8,8 +8,6 @@ class DeleteDispatcher extends AbstractDispatcher
 
     public function dispatch(mixed $payload = null): bool
     {
-        if(!parent::dispatch($payload)) return false;
-
-        TelegramPost::where('message_id', $payload)->delete(); return true;
+        if(!parent::dispatch($payload)) return false; TelegramPost::where('message_id', $payload)->delete(); return true;
     }
 }

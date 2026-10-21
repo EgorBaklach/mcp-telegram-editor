@@ -16,11 +16,12 @@ use RuntimeException;
 class OpenRouterTest extends TestCase
 {
     private Capsule $capsule;
+
     private $container;
 
     protected function setUp(): void
     {
-        $config = require __DIR__ . '/../bootstrap/machine.php';
+        $config = require __DIR__.'/../bootstrap/machine.php';
         $app = Application::make($config);
 
         $reflector = new ReflectionClass($app);
@@ -49,7 +50,7 @@ class OpenRouterTest extends TestCase
         return [
             'id' => $id,
             'name' => $name,
-            'description' => 'Test description for ' . $name,
+            'description' => 'Test description for '.$name,
             'context_length' => $contextLength,
             'created' => 1784700000,
             'architecture' => ['modality' => 'text→text'],
@@ -253,5 +254,28 @@ class OpenRouterTest extends TestCase
     {
         $tool = $this->container->get(MarkPublishedTool::class);
         $this->assertEquals('not found', $tool->markPublished('vendor/nonexistent:free'));
+    }
+
+    #[TestDox('OpenRouter Client: автоматически переключается на резервный шлюз NAT64 при сбое первого')]
+    public function testOpenRouterClientNat64Failover(): void
+    {
+        $ips = $this->container->get('openrouter')['nat64_ips'];
+
+        $client = new class($this->container) extends OpenRouter
+        {
+            public array $attemptedResolve = [];
+
+            public function get($uri, array $options = []): Response
+            {
+                $this->attemptedResolve[] = $options['curl'][CURLOPT_RESOLVE][0] ?? 'direct';
+                if(count($this->attemptedResolve) === 1) throw new RuntimeException('Primary NAT64 timeout');
+
+                return new Response(200, [], '{"data":[]}');
+            }
+        };
+
+        $response = $client->getModels();
+        $this->assertEquals(200, $response->getStatusCode());
+        $this->assertEquals(["openrouter.ai:443:[{$ips[0]}]", "openrouter.ai:443:[{$ips[1]}]"], $client->attemptedResolve);
     }
 }

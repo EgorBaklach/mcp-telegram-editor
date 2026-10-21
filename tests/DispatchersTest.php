@@ -13,14 +13,18 @@ use Symfony\Component\Console\Output\NullOutput;
 class DispatchersTest extends TestCase
 {
     private Capsule $capsule;
+
     private UpDispatcher $upDispatcher;
+
     private DownDispatcher $downDispatcher;
+
     private CreateDispatcher $createDispatcher;
+
     private MigrateCommand $command;
 
     protected function setUp(): void
     {
-        $config = require __DIR__ . '/../bootstrap/machine.php';
+        $config = require __DIR__.'/../bootstrap/machine.php';
         $app = Application::make($config);
 
         $reflector = new ReflectionClass($app);
@@ -94,10 +98,10 @@ class DispatchersTest extends TestCase
         $this->capsule::schema()->dropIfExists('test_table_b');
         $this->capsule::schema()->dropIfExists('test_table_c');
 
-        $baseDir = __DIR__ . '/../database/migrations/';
-        $fileA = $baseDir . '9999_01_01_000001_create_table_a.php';
-        $fileB = $baseDir . '9999_01_01_000002_create_table_b.php';
-        $fileC = $baseDir . '9999_01_01_000003_create_table_c.php';
+        $baseDir = __DIR__.'/../database/migrations/';
+        $fileA = $baseDir.'9999_01_01_000001_create_table_a.php';
+        $fileB = $baseDir.'9999_01_01_000002_create_table_b.php';
+        $fileC = $baseDir.'9999_01_01_000003_create_table_c.php';
 
         $template = "<?php return new class { public function up() { \Illuminate\Database\Capsule\Manager::schema()->create('%s', function (\$t) { \$t->increments('id'); }); } public function down() { \Illuminate\Database\Capsule\Manager::schema()->dropIfExists('%s'); } };";
 
@@ -163,8 +167,8 @@ class DispatchersTest extends TestCase
 
         $this->assertTrue($result, 'Метод dispatch() должен вернуть true');
 
-        $baseDir = getcwd() . '/database/migrations/';
-        $files = glob($baseDir . '*_test_create_user_table.php');
+        $baseDir = getcwd().'/database/migrations/';
+        $files = glob($baseDir.'*_test_create_user_table.php');
 
         $this->assertNotEmpty($files, 'Файл миграции должен быть создан');
 

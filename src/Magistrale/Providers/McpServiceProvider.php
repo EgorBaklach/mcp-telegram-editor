@@ -24,7 +24,7 @@ final class McpServiceProvider extends ProviderAbstract implements BootableServi
 
     public function boot(): void
     {
-        $this->settings = $this->container()->get('mcp.settings');
+        $this->settings = $this->container()->get('mcp');
     }
 
     public function register(): void
@@ -47,7 +47,7 @@ final class McpServiceProvider extends ProviderAbstract implements BootableServi
                 ->setSession(new FileSessionStore($this->settings['session_dir']))
                 ->setContainer($this->container());
 
-            foreach ($this->container()->get('mcp.tools') as $tool) $builder->addTool(...$tool);
+            foreach($this->settings['tools'] as $tool) $builder->addTool(...$tool);
 
             return $builder->build();
         });

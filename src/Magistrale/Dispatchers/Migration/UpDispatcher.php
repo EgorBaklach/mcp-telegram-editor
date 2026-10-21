@@ -9,7 +9,7 @@ class UpDispatcher extends AbstractDispatcher
 {
     public function dispatch(mixed $payload = null): bool
     {
-        if(empty($files = $this->getPendingFiles())) return $this->command->logger->info('База данных в актуальном состоянии. Нет новых миграций.');
+        if(!$files = $this->getPendingFiles()) return $this->command->logger->info('База данных в актуальном состоянии. Нет новых миграций.');
 
         $batch = Migration::query()->max('batch') ?? 0; foreach($files as $file) if(!$this->applyMigration($file, $batch + 1)) return false;
 
@@ -18,14 +18,7 @@ class UpDispatcher extends AbstractDispatcher
 
     private function getPendingFiles(): array
     {
-        $files = Glob::glob('database/migrations/*.php', Glob::GLOB_BRACE, true);
-
-        if($last = Migration::query()->orderByDesc('batch')->orderByDesc('id')->value('migration'))
-        {
-            if(($index = array_search($last, $files)) !== false) return array_slice($files, $index + 1);
-        }
-
-        return $files;
+        return array_values(array_diff(Glob::glob('database/migrations/*.php', Glob::GLOB_BRACE, true), Migration::query()->select('migration')->pluck('migration')->all()));
     }
 
     private function applyMigration(string $file, int $batch): bool
@@ -34,7 +27,9 @@ class UpDispatcher extends AbstractDispatcher
 
         try
         {
-            if(!is_object($instance = require $file) || !method_exists($instance, 'up'))
+            $instance = require $file;
+
+            if(!is_object($instance) || !method_exists($instance, 'up'))
             {
                 throw new RuntimeException("Файл миграции {$file} должен возвращать анонимный класс с методом up()");
             }

@@ -18,19 +18,17 @@ abstract class AbstractDispatcher implements DispatcherInterface
 
     public function dispatch(mixed $payload = null): bool
     {
-        if(!$payload) return false;
-
         try
         {
             $this->response = $this->client->{static::method}($payload);
 
-            if($this->response->getStatusCode() !== 200) throw new RuntimeException($this->response->getStatusCode());
+            if($this->response->getStatusCode() !== 200) throw new RuntimeException('HTTP '.$this->response->getStatusCode().': '.(string) $this->response->getBody());
 
-            $this->logger->info("Telegram API result: " . (string) $this->response->getBody()); return true;
+            $this->logger->info('Telegram API result: '.(string) $this->response->getBody()); return true;
         }
         catch(Throwable $e)
         {
-            $this->logger->error("Failed to operate with Telegram: " . (string) $e);
+            $this->logger->error('Failed to operate with Telegram: '.(string) $e);
         }
 
         return false;

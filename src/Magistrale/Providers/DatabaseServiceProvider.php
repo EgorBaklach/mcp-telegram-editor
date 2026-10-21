@@ -15,7 +15,7 @@ final class DatabaseServiceProvider extends ProviderAbstract
         {
             $capsule = new Capsule;
 
-            $capsule->addConnection($this->container()->get('database.configs'));
+            $capsule->addConnection($this->container()->get('database'));
 
             // Настраиваем Capsule глобально при первом разрешении сервиса
             $capsule->setAsGlobal();

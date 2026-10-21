@@ -12,6 +12,7 @@ class ProviderAggregate implements ProviderAggregateInterface, ServiceProviderAg
     use ContainerAwareTrait;
 
     private array $providers = [];
+
     private array $registered = [];
 
     public function __construct(array $providers)
@@ -38,11 +39,11 @@ class ProviderAggregate implements ProviderAggregateInterface, ServiceProviderAg
     {
         if (false === $this->provides($service)) throw new ContainerException(sprintf('(%s) is not provided by a service provider', $service));
 
-        foreach ($this->getIterator() as $provider)
+        foreach($this->getIterator() as $provider)
         {
-            /** @var ProviderInterface $provider */ if(in_array($id = $provider->getIdentifier(), $this->registered, true) || !$provider->provides($service)) continue;
+            /** @var ProviderInterface $provider */ $id = $provider->getIdentifier(); if(in_array($id, $this->registered, true) || !$provider->provides($service)) continue;
 
-            if ($provider instanceof BootableServiceProviderInterface) $provider->boot(); $provider->register(); $this->registered[] = $id;
+            if($provider instanceof BootableServiceProviderInterface) $provider->boot(); $provider->register(); $this->registered[] = $id;
         }
     }
 

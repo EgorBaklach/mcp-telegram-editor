@@ -17,7 +17,7 @@ class DatabaseTest extends TestCase
     protected function setUp(): void
     {
         // Инициализируем контейнер приложения, чтобы сработал DatabaseServiceProvider
-        $config = require __DIR__ . '/../bootstrap/machine.php';
+        $config = require __DIR__.'/../bootstrap/machine.php';
         $app = Application::make($config);
 
         $reflector = new ReflectionClass($app);

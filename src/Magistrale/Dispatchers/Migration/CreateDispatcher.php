@@ -8,7 +8,7 @@ class CreateDispatcher extends AbstractDispatcher
 {
     public function __construct(private Filesystem $fs, Manager $capsule)
     {
-        return parent::__construct($capsule);
+        parent::__construct($capsule);
     }
 
     public function build(MigrateCommand $command): self

@@ -2,7 +2,7 @@
 
 use Symfony\Component\Console\Output\OutputInterface;
 
-interface MigrationLoggerInterface
+interface ConsoleLoggerInterface
 {
     public function setOutput(OutputInterface $output): void;
 

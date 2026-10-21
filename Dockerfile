@@ -14,4 +14,4 @@ WORKDIR /app
 
 # Run composer install and start the PHP dev server serving the public/ directory
 CMD composer install --no-interaction --prefer-dist --optimize-autoloader && \
-    php -S 0.0.0.0:9000 -t public public/index.php
+    php -S 127.0.0.1:9001 -t public public/index.php

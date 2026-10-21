@@ -5,12 +5,16 @@ services:
     build: .
     container_name: mcp-telegram-editor
     restart: unless-stopped
-    ports:
-      - "9001:9000"
+    network_mode: host
     volumes:
       - .:/app
+      - /root/.local/bin/agy:/usr/local/bin/agy:ro
+      - /root/.gemini:/root/.gemini
+      - /lib/x86_64-linux-gnu:/lib/x86_64-linux-gnu:ro
+      - /lib64:/lib64:ro
     depends_on:
       - db
+      - redis
     deploy:
       resources:
         limits:
@@ -27,7 +31,7 @@ services:
     container_name: mcp-telegram-editor-db
     restart: unless-stopped
     ports:
-      - "5432:5432"
+      - "127.0.0.1:5432:5432"
     environment:
       POSTGRES_DB: ${DB_DATABASE}
       POSTGRES_USER: ${DB_USERNAME}
@@ -52,3 +56,26 @@ services:
       options:
         max-size: "10m"
         max-file: "3"
+
+  redis:
+    image: redis:7-alpine
+    container_name: mcp-telegram-editor-redis
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:6379:6379"
+    command: >
+      redis-server
+      --save ""
+      --appendonly no
+      --maxmemory 16mb
+      --maxmemory-policy allkeys-lru
+    deploy:
+      resources:
+        limits:
+          cpus: '0.15'
+          memory: 32M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "5m"
+        max-file: "2"

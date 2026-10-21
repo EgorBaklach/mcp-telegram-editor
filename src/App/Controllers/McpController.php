@@ -14,15 +14,13 @@ final class McpController
 
     public function __invoke(ServerRequestInterface $request): ResponseInterface
     {
-        if ($request->getMethod() === 'OPTIONS') return $this->responseFactory->createResponse(204);
+        if($request->getMethod() === 'OPTIONS') return $this->responseFactory->createResponse(204);
 
-        $stream = new StreamableHttpTransport(
+        return $this->mcpServer->run(new StreamableHttpTransport(
             request: $request,
             responseFactory: $this->responseFactory,
             streamFactory: $this->streamFactory,
             middleware: []
-        );
-
-        return $this->mcpServer->run($stream);
+        ));
     }
 }

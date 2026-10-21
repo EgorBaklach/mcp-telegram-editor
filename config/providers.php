@@ -1,7 +1,7 @@
 <?php
 
 use Cli\Providers\ServiceProvider as CliServiceProvider;
-use Magistrale\Providers\{McpServiceProvider, DatabaseServiceProvider, MigrationServiceProvider};
+use Magistrale\Providers\{McpServiceProvider, DatabaseServiceProvider};
 use Framework\Providers\{ProviderAggregate, ServiceProvider};
 
 return new ProviderAggregate([
@@ -9,5 +9,4 @@ return new ProviderAggregate([
     ServiceProvider::class,
     McpServiceProvider::class,
     DatabaseServiceProvider::class,
-    MigrationServiceProvider::class
 ]);

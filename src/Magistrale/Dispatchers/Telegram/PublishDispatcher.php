@@ -8,7 +8,7 @@ class PublishDispatcher extends AbstractDispatcher
 
     public function dispatch(mixed $payload = null): bool
     {
-        if(!parent::dispatch($payload)) return false; $data = json_decode((string) $this->response->getBody(), true);
+        if(!parent::dispatch($payload)) return false; $data = json_decode((string) $this->response->getBody(), true, 512, JSON_BIGINT_AS_STRING);
 
         if(isset($data['ok'], $data['result']['message_id'])) TelegramPost::create(['message_id' => $data['result']['message_id'], 'text' => (string) $payload]);
 

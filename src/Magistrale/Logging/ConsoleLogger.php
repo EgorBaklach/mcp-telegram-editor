@@ -2,7 +2,7 @@
 
 use Symfony\Component\Console\Output\OutputInterface;
 
-class ConsoleMigrationLogger implements MigrationLoggerInterface
+class ConsoleLogger implements ConsoleLoggerInterface
 {
     private readonly OutputInterface $output;
 

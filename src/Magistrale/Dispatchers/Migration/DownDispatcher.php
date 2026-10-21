@@ -38,7 +38,9 @@ class DownDispatcher extends AbstractDispatcher
 
         try
         {
-            if(!is_object($instance = require $row->migration) || !method_exists($instance, 'down'))
+            $instance = require $row->migration;
+
+            if(!is_object($instance) || !method_exists($instance, 'down'))
             {
                 throw new RuntimeException("Файл миграции должен возвращать объект с методом down()");
             }
