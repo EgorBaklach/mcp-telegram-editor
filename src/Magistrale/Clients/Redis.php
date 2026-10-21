@@ -1,11 +1,15 @@
 <?php namespace Magistrale\Clients;
 
+use Illuminate\Support\Traits\Macroable;
 use League\Container\DefinitionContainerInterface;
+use Magistrale\Mixins\MacroableInterface;
 use RuntimeException;
 use Throwable;
 
-class Redis
+class Redis implements MacroableInterface
 {
+    use Macroable;
+
     private array $configs;
 
     public function __construct(DefinitionContainerInterface $container)
@@ -32,9 +36,7 @@ class Redis
 
     public function command(array $args): mixed
     {
-        $socket = @fsockopen($this->configs['host'], (int) $this->configs['port'], $errno, $errstr, (float) ($this->configs['timeout'] ?? 2.0));
-
-        if(!$socket)
+        if(!$socket = @fsockopen($this->configs['host'], (int) $this->configs['port'], $errno, $errstr, (float) ($this->configs['timeout'] ?? 2.0)))
         {
             throw new RuntimeException("Redis connection failed: {$errstr} ({$errno})");
         }
@@ -43,9 +45,7 @@ class Redis
 
         try
         {
-            $payload = '*'.count($args)."\r\n"; foreach($args as $arg) $payload .= '$'.strlen((string) $arg)."\r\n{$arg}\r\n"; fwrite($socket, $payload);
-
-            return $this->readResponse($socket);
+            fwrite($socket, $this->encodeResp($args)); return $this->readResponse($socket);
         }
         finally
         {

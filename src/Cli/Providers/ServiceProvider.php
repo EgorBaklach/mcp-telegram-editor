@@ -28,7 +28,7 @@ class ServiceProvider extends ProviderAbstract implements BootableServiceProvide
 
         $this->container()->add(ConsoleInterface::class, function(): ConsoleInterface
         {
-            $console = new $this->dependencies['console']($this->container()); foreach(array_keys($this->commands) as $command) $console->add(new $command); return $console;
+            $console = new $this->dependencies['console']($this->container()); foreach(array_keys($this->commands) as $command) $console->add($this->container()->get($command)); return $console;
         });
     }
 }

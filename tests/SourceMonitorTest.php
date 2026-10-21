@@ -41,7 +41,7 @@ class SourceMonitorTest extends TestCase
         $this->redis->releaseLock('lock:source:openrouter');
         $this->redis->releaseLock('lock:source:test');
 
-        $this->command = new SourceMonitorCommand();
+        $this->command = $this->container->get(SourceMonitorCommand::class);
         $this->command->setContainer($this->container);
         $this->command->construct();
         $this->command->logger->setOutput(new NullOutput());
@@ -84,7 +84,7 @@ class SourceMonitorTest extends TestCase
         $this->container->add(AgyAgent::class, $agent);
         $dispatcher = $this->container->get(OpenRouterDispatcher::class);
 
-        $this->assertTrue($dispatcher->build($this->command)->dispatch());
+        $this->assertTrue($dispatcher->build($this->command)->dispatch('agy'));
         $this->assertDirectoryDoesNotExist($expectedHome, 'Эфемерный каталог HOME должен быть полностью удален в finally');
         $this->assertFalse($this->redis->isLocked('lock:source:openrouter', 10), 'Лок должен быть освобожден в finally после завершения');
     }
@@ -111,7 +111,7 @@ class SourceMonitorTest extends TestCase
         $this->container->add(AgyAgent::class, $agent);
         $dispatcher = $this->container->get(OpenRouterDispatcher::class);
 
-        $this->assertTrue($dispatcher->build($this->command)->dispatch());
+        $this->assertTrue($dispatcher->build($this->command)->dispatch('agy'));
         $this->assertFalse($processCalled, 'Процесс не должен запускаться, если лок уже удерживается');
         $this->assertTrue($this->redis->isLocked('lock:source:openrouter', 60), 'Чужой активный лок должен остаться нетронутым');
     }
@@ -131,12 +131,12 @@ class SourceMonitorTest extends TestCase
         $this->container->add(AgyAgent::class, $agent);
         $dispatcher = $this->container->get(OpenRouterDispatcher::class);
 
-        $this->assertFalse($dispatcher->build($this->command)->dispatch());
+        $this->assertFalse($dispatcher->build($this->command)->dispatch('agy'));
         $this->assertDirectoryDoesNotExist($expectedHome, 'Эфемерный HOME обязан удаляться даже при сбое процесса');
         $this->assertFalse($this->redis->isLocked('lock:source:openrouter', 10), 'Лок обязан освобождаться даже при сбое процесса');
     }
 
-    #[TestDox('SourceMonitorCommand: поддерживает запуск дефолтного агента (agy) и выбор агента через --openrouter=hermes')]
+    #[TestDox('SourceMonitorCommand: требует обязательного указания агента и поддерживает --openrouter=agy / --openrouter=hermes')]
     public function testSourceMonitorCommandExecution(): void
     {
         $agent = new class($this->container, $this->fs) extends AgyAgent
@@ -156,12 +156,18 @@ class SourceMonitorTest extends TestCase
 
         $this->command->logger = new ConsoleLogger();
         $this->assertEquals(Command::SUCCESS, $this->command->run(new ArrayInput(['--openrouter' => null]), $output));
+        $this->assertStringContainsString('Укажите доступного AI-агента', $output->fetch());
+
+        $this->command->logger = new ConsoleLogger();
+        $this->assertEquals(Command::SUCCESS, $this->command->run(new ArrayInput(['--openrouter' => 'agy']), $output));
+        $this->assertStringContainsString('Запуск AI-агента (agy)', $output->fetch());
 
         $this->command->logger = new ConsoleLogger();
         $this->assertEquals(Command::SUCCESS, $this->command->run(new ArrayInput(['--openrouter' => 'hermes']), $output));
         $this->assertStringContainsString('Запуск AI-агента (hermes)', $output->fetch());
 
         $dispatcher = $this->container->get(OpenRouterDispatcher::class)->build($this->command);
+        $this->assertFalse($dispatcher->dispatch());
         $this->assertFalse($dispatcher->dispatch('unknown_agent'));
         $this->assertInstanceOf(HermesAgent::class, $this->container->get(HermesAgent::class));
     }

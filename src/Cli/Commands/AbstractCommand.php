@@ -1,18 +1,23 @@
 <?php namespace Cli\Commands;
 
 use Framework\Contracts\Console\CommandInterface;
+use Illuminate\Support\Traits\Macroable;
 use League\Container\DefinitionContainerInterface;
-use Magistrale\Dispatchers\DispatcherInterface;
 use Magistrale\Logging\ConsoleLoggerInterface;
+use Magistrale\Mixins\MacroableInterface;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 
-abstract class AbstractCommand extends Command implements CommandInterface
+abstract class AbstractCommand extends Command implements CommandInterface, MacroableInterface
 {
+    use Macroable;
+
     public DefinitionContainerInterface $container;
 
     public ConsoleLoggerInterface $logger;
+
+    public InputInterface $input;
 
     public function setContainer(DefinitionContainerInterface $container): void
     {
@@ -26,17 +31,13 @@ abstract class AbstractCommand extends Command implements CommandInterface
 
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
-        $this->logger->setOutput($output); $dispatchers = $this->container->get('commands')[static::class] ?? [];
+        $this->input = $input; $this->logger->setOutput($output); $dispatchers = $this->container->get('commands')[static::class] ?? [];
 
         foreach($dispatchers as $option => $class)
         {
-            $value = $input->getOption($option); if($value !== false)
+            if($this->hasOption($option))
             {
-                /** @var DispatcherInterface $dispatcher */ $dispatcher = $this->container->get($class)->build($this);
-
-                $dispatcher->dispatch($value === true ? null : $value);
-
-                return Command::SUCCESS;
+                $this->container->get($class)->build($this)->dispatch($this->getOption($option)); return Command::SUCCESS;
             }
         }
 

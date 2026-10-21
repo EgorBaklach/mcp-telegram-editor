@@ -4,7 +4,6 @@ use Cli\Commands\SourceMonitorCommand;
 use Magistrale\Agents\AgentInterface;
 use Magistrale\Clients\Redis;
 use Magistrale\Dispatchers\DispatcherInterface;
-use Symfony\Component\Filesystem\Filesystem;
 use Throwable;
 
 abstract class AbstractDispatcher implements DispatcherInterface
@@ -15,7 +14,7 @@ abstract class AbstractDispatcher implements DispatcherInterface
 
     protected const lockKey = '';
 
-    public function __construct(protected readonly Redis $redis, protected readonly Filesystem $fs) {}
+    public function __construct(protected readonly Redis $redis) {}
 
     public function build(SourceMonitorCommand $command): self
     {
@@ -24,11 +23,11 @@ abstract class AbstractDispatcher implements DispatcherInterface
 
     public function dispatch(mixed $payload = null): bool
     {
-        $agents = $this->command->container->get('agents'); $agentKey = (string) ($payload ?: $agents['default']);
+        $agents = $this->command->container->get('agents');
 
-        if(!isset($agents['drivers'][$agentKey]))
+        if(!$payload || !isset($agents['drivers'][$payload]))
         {
-            $this->command->logger->error("Неизвестный AI-агент: {$agentKey}. Доступные: ".implode(', ', array_keys($agents['drivers']))); return false;
+            $this->command->logger->error('Укажите доступного AI-агента ('.implode(', ', array_keys($agents['drivers'])).') через --'.static::sourceName.'=ИМЯ_АГЕНТА'); return false;
         }
 
         if($this->redis->isLocked(static::lockKey))
@@ -36,11 +35,11 @@ abstract class AbstractDispatcher implements DispatcherInterface
             return $this->command->logger->comment('Источник '.static::sourceName.' уже обрабатывается (lock: '.static::lockKey.'). Пропуск.');
         }
 
-        /** @var AgentInterface $agent */ $agent = $this->command->container->get($agents['drivers'][$agentKey]);
+        /** @var AgentInterface $agent */ $agent = $this->command->container->get($agents['drivers'][$payload]);
 
         try
         {
-            $this->command->logger->comment("Запуск AI-агента ({$agentKey}) для источника ".static::sourceName.'...');
+            $this->command->logger->comment("Запуск AI-агента ({$payload}) для источника ".static::sourceName.'...');
 
             $agent->prepare(static::sourceName);
 
@@ -59,7 +58,7 @@ abstract class AbstractDispatcher implements DispatcherInterface
         }
         finally
         {
-            $agent->cleanup(); $this->fs->remove(glob(sys_get_temp_dir().'/mcp-sessions/*') ?: []); $this->redis->releaseLock(static::lockKey);
+            $agent->cleanup(); $this->redis->releaseLock(static::lockKey);
         }
     }
 }

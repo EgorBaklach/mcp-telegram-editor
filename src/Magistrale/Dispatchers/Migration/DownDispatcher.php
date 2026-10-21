@@ -1,11 +1,12 @@
 <?php namespace Magistrale\Dispatchers\Migration;
 
 use App\Models\Migration;
-use RuntimeException;
 use Throwable;
 
 class DownDispatcher extends AbstractDispatcher
 {
+    protected const method = 'down';
+
     public function dispatch(mixed $payload = null): bool
     {
         if(!$migrations = $this->getMigrationsToRollback($payload)) return $this->command->logger->info('Не найдено миграций для отката.');
@@ -38,14 +39,7 @@ class DownDispatcher extends AbstractDispatcher
 
         try
         {
-            $instance = require $row->migration;
-
-            if(!is_object($instance) || !method_exists($instance, 'down'))
-            {
-                throw new RuntimeException("Файл миграции должен возвращать объект с методом down()");
-            }
-
-            $instance->down(); Migration::query()->where('id', $row->id)->delete();
+            $this->runMigration($row->migration); Migration::query()->where('id', $row->id)->delete();
 
             $this->command->logger->info("Миграция {$row->migration} успешно откачена."); return true;
         }

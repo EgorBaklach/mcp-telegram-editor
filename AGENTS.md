@@ -41,11 +41,13 @@
 
 ## 🎨 Архитектура и Стиль кода (OOP & SOLID)
 
-Полные правила проектирования, принципы написания чистого кода (отказ от лишних переменных, лаконичность) и строгие стандарты форматирования (переносы скобок, отсутствие пробелов после управляющих конструкций, однострочники до 220 символов) вынесены в отдельный документ.
+Полные правила проектирования, принципы написания чистого кода (отказ от лишних переменных, вынос нетривиальных проверок в миксины, лаконичность) и строгие стандарты форматирования (переносы скобок, отсутствие пробелов после управляющих конструкций, порядок и двойные отступы атрибутов класса, однострочники до 220 символов) вынесены в отдельный документ.
 
 👉 **[Ознакомиться со стилем кода (docs/CODE_STYLE.md)](docs/CODE_STYLE.md)**
 
 * **Окружение**: Для получения переменных окружения запрещено использовать глобальный массив `$_ENV`. Всегда используйте функцию `getenv()`.
+* **Модульные определения (`definitions/*.php`)**: Все конфигурации сервисов, агентов, CLI-команд, миксинов, клиентов и MCP-инструментов разнесены по тематическим файлам в корневой директории `definitions/` и автоматически собираются в `config/definitions.php` через `Glob::glob('definitions/*.php')`.
+* **Система миксинов (`Magistrale\Mixins`)**: Неочевидные технические проверки и низкоуровневые преобразования выносятся в классы-миксины в `src/Magistrale/Mixins/*Mixin.php` и подключаются к целевым классам (`MacroableInterface`) через `Magistrale\Inflectors\MixinInflector` и карту `definitions/mixins.php`. При создании новых миксинов или добавлении в них обратных обращений к целевому инстансу (`$this` / `static`) обязательно синхронно пополнять `_ide_helper.php` (`@method`-аннотациями для целевого класса и стабами свойств/констант для самого класса миксина).
 
 ---
 
@@ -56,42 +58,52 @@
 
 ---
 
-## 🚀 Система миграций базы данных
+## 🚀 CLI-команды: Миграции и Мониторинг источников
 
-Миграции реализованы через консольную команду `db:migrate`, которая оркестрирует работу диспетчеров (паттерн Strategy/Dispatcher).
+Все консольные команды наследуют `Cli\Commands\AbstractCommand`, который централизованно разрешает диспетчеры из `definitions/commands.php` и работает с опциями через `CommandMixin` (`hasOption()`, `getOption()`).
+
+### 1. Система миграций (`db:migrate`)
 ```bash
 docker exec mcp-telegram-editor php bin/console.php db:migrate --up
 docker exec mcp-telegram-editor php bin/console.php db:migrate --down
 docker exec mcp-telegram-editor php bin/console.php db:migrate --new=TableName
 ```
+* **Диспетчеры**: `UpDispatcher`, `DownDispatcher` и `CreateDispatcher` (`src/Magistrale/Dispatchers/Migration/`), наследующие `AbstractDispatcher` с подключённым `MigrationMixin` (`formatMigrationName()`, `runMigration()`).
+* **Модель Migration**: История миграций хранится в БД и управляется через Eloquent модель `App\Models\Migration` с полями `id`, `migration`, `batch`.
+* **Файловая система и логирование**: Используется `symfony/filesystem` и единый `ConsoleLoggerInterface` (`ConsoleLogger`).
 
-**Особенности реализации:**
-1. **Диспетчеры**: Вся логика разделена на `UpMigrationDispatcher`, `DownMigrationDispatcher` и `CreateMigrationDispatcher`, каждый реализует `MigrationDispatcherInterface`.
-2. **Модель Migration**: История миграций хранится в БД и управляется через Eloquent модель `App\Models\Migration` с полями `id`, `migration`, `batch`.
-3. **Файловая система**: Используется компонент `symfony/filesystem` для низкоуровневой работы с файлами (через DI-контейнер).
-4. **Оптимизация**: Минимизировано количество обращений к БД и кэшу контейнера. Таблица миграций проверяется с помощью `$capsule::schema()->hasTable('migrations')`.
-5. **Логирование**: Встроенный интерфейс `ConsoleLoggerInterface` позволяет диспетчерам выводить результаты прямо в консоль (методы возвращают `bool`, что позволяет делать элегантные однострочные `return`).
+### 2. Мониторинг внешних источников (`source:monitor`)
+```bash
+docker exec mcp-telegram-editor php bin/console.php source:monitor --openrouter=agy
+docker exec mcp-telegram-editor php bin/console.php source:monitor --openrouter=hermes
+```
+* **Диспетчеры источников**: Наследуют `Magistrale\Dispatchers\SourceMonitor\AbstractDispatcher` (например, `OpenRouterDispatcher`).
+* **Защита от гонок (Redis Lock)**: Перед запуском AI-агента захватывается атомарный распределённый лок через `Magistrale\Clients\Redis` (`SET key 1 NX EX ttl` по прямому TCP RESP-протоколу с `RedisMixin::encodeResp()`) и гарантированно освобождается в блоке `finally`.
+* **Драйверы AI-агентов (`Magistrale\Agents`)**: Реализуют `AgentInterface` и настраиваются в `definitions/agents.php`:
+  * `AgyAgent` — создаёт изолированный эфемерный каталог `HOME` в `/tmp/agy-home-{source}`, прокидывает симлинки конфигурации и запускает процесс `agy`, удаляя временный `HOME` по завершении.
+  * `HermesAgent` — заготовка драйвера под протокол ACP (Agent Communication Protocol).
 
 ---
 
 ## 🧪 Тестирование и Среда разработки (LSP/IDE)
 
-* Запуск всех тестов:
+* Запуск всех тестов (`38 tests, 164 assertions`):
   ```bash
   docker exec mcp-telegram-editor vendor/bin/phpunit --testdox
   ```
-* Все миграционные диспетчеры на 100% покрыты тестами (`MigrationDispatchersTest.php`), включая создание файлов, накатывание и откатывание (по батчам, по ID и всех сразу). В `setUp` и `tearDown` корректно изолируются транзакции/подключения.
-* OpenRouter-диспетчеры и инструменты покрыты тестами (`OpenRouterTest.php`) — 10 тестов, 45 assertions.
-* Для помощи LSP/IDE используется файл `_ide_helper.php`. Дополнять его заглушками можно **только по прямому запросу пользователя** в случае возникновения ошибок `Undefined type`. Самостоятельно генерировать стабы запрещено.
+* Покрытие включает: `ApplicationTest`, `DatabaseTest`, `DispatchersTest` (миграции), `McpControllerTest`, `McpJsonStrategyTest`, `OpenRouterTest` (11 тестов, включая NAT64 failover), `SourceMonitorTest` (5 тестов: Redis-локи, жизненный цикл эфемерного `HOME`, выбор AI-агентов) и `TelegramTest` (12 тестов).
+* Для помощи LSP/IDE (Intelephense) используется файл `_ide_helper.php`:
+  * **Обязательное пополнение для миксинов**: При создании новых миксинов (`src/Magistrale/Mixins/*Mixin.php`) или добавлении внутри замыканий миксина обратных обращений к свойствам/константам/методам целевого инстанса (`$this` или `static::`), агент обязан автоматически дополнять `_ide_helper.php` соответствующими `@method`-аннотациями на целевом классе и стабами констант/свойств на классе миксина, чтобы избежать предупреждений LSP (`Undefined method` / `Undefined class constant`).
+  * В остальных случаях (вне системы миксинов) дополнять `_ide_helper.php` заглушками можно только по прямому запросу пользователя.
 
 ---
 
 ## 🎯 Текущий статус разработки (Session State)
 
-* **База Данных**: Настроен `DatabaseServiceProvider`, Eloquent работает через DI-контейнер.
-* **Миграции**: Разработан, полностью отрефакторен и протестирован движок миграций. Внедрен паттерн Dispatcher, внедрен `symfony/filesystem`. Система работает безотказно и не содержит багов инициализации.
-* **Архитектура**: Проект перешел на использование `League\Container` с полной поддержкой автовайринга и DI.
-* **OpenRouter Tracker**: Реализован полный цикл мониторинга бесплатных моделей OpenRouter — синхронизация с API, обнаружение новых моделей, фиксация публикации. Инструменты: `check_new_models`, `mark_published`.
+* **База Данных и Миграции**: Настроен `DatabaseServiceProvider`, движок миграций (`db:migrate`) работает через `AbstractCommand` и `MigrationMixin`.
+* **Модульные определения и Миксины**: Конфигурации вынесены в `definitions/*.php`; внедрена система миксинов (`MacroableInterface` + `MixinInflector` + `definitions/mixins.php`).
+* **Telegram Bot API 10.3**: Поддержана отправка и редактирование постов через `sendRichMessage` и `editMessageText` (`rich_message`).
+* **OpenRouter Tracker & Source Monitor**: Реализован полный цикл мониторинга бесплатных моделей OpenRouter (`check_new_models`, `mark_published`), NAT64 IPv6 failover и оркестрация фонового запуска AI-агентов через `source:monitor` с Redis-блокировками.
 
 ---
 

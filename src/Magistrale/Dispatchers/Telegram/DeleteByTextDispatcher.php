@@ -6,7 +6,7 @@ class DeleteByTextDispatcher extends DeleteDispatcher
 {
     public function dispatch(mixed $payload = null): bool
     {
-        if(!$post = TelegramPost::where('text', 'ILIKE', '%'.addcslashes((string) $payload, '%_\\').'%')->latest()->first())
+        if(!$post = TelegramPost::where('text', 'ILIKE', $this->escapeLike((string) $payload))->latest()->first())
         {
             $this->logger->warning("Post with text '{$payload}' not found in database."); return false;
         }

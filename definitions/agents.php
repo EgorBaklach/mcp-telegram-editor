@@ -3,7 +3,6 @@
 use Magistrale\Agents\{AgyAgent, HermesAgent};
 
 return [
-    'default' => 'agy',
     'drivers' => [
         'agy' => AgyAgent::class,
         'hermes' => HermesAgent::class,

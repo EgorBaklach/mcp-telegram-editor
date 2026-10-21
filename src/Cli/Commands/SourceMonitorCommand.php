@@ -8,6 +8,6 @@ class SourceMonitorCommand extends AbstractCommand
 {
     protected function configure(): void
     {
-        $this->addOption('openrouter', null, InputOption::VALUE_OPTIONAL, 'Запустить мониторинг бесплатных AI-моделей OpenRouter (по умолчанию агент agy)', false);
+        $this->addOption('openrouter', null, InputOption::VALUE_OPTIONAL, 'Запустить мониторинг бесплатных AI-моделей OpenRouter через указанного агента (например, --openrouter=agy)', false);
     }
 }

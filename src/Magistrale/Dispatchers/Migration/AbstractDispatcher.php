@@ -3,11 +3,17 @@
 use Cli\Commands\MigrateCommand;
 use Illuminate\Database\Capsule\Manager as Capsule;
 use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Traits\Macroable;
 use Magistrale\Dispatchers\DispatcherInterface;
+use Magistrale\Mixins\MacroableInterface;
 
-abstract class AbstractDispatcher implements DispatcherInterface
+abstract class AbstractDispatcher implements DispatcherInterface, MacroableInterface
 {
+    use Macroable;
+
     protected MigrateCommand $command;
+
+    protected const method = '';
 
     public function __construct(protected readonly Capsule $capsule) {}
 

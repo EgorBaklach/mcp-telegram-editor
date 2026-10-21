@@ -39,7 +39,7 @@ class DispatchersTest extends TestCase
         $this->downDispatcher = $container->get(DownDispatcher::class);
         $this->createDispatcher = $container->get(CreateDispatcher::class);
 
-        $this->command = new MigrateCommand();
+        $this->command = $container->get(MigrateCommand::class);
         $this->command->setContainer($container);
         $this->command->construct();
         $this->command->logger->setOutput(new NullOutput());

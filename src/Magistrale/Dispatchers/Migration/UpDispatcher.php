@@ -2,11 +2,12 @@
 
 use Laminas\Stdlib\Glob;
 use App\Models\Migration;
-use RuntimeException;
 use Throwable;
 
 class UpDispatcher extends AbstractDispatcher
 {
+    protected const method = 'up';
+
     public function dispatch(mixed $payload = null): bool
     {
         if(!$files = $this->getPendingFiles()) return $this->command->logger->info('База данных в актуальном состоянии. Нет новых миграций.');
@@ -27,14 +28,7 @@ class UpDispatcher extends AbstractDispatcher
 
         try
         {
-            $instance = require $file;
-
-            if(!is_object($instance) || !method_exists($instance, 'up'))
-            {
-                throw new RuntimeException("Файл миграции {$file} должен возвращать анонимный класс с методом up()");
-            }
-
-            $instance->up(); Migration::query()->create(['migration' => $file, 'batch' => $batch]);
+            $this->runMigration($file); Migration::query()->create(['migration' => $file, 'batch' => $batch]);
 
             $this->command->logger->info("Миграция {$file} успешно выполнена."); return true;
         }
