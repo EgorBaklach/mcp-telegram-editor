@@ -3,8 +3,7 @@
 use Framework\Contracts\Provider\{ProviderAggregateInterface, ProviderInterface};
 use League\Container\ContainerAwareTrait;
 use League\Container\Exception\ContainerException;
-use League\Container\ServiceProvider\BootableServiceProviderInterface;
-use League\Container\ServiceProvider\ServiceProviderAggregateInterface;
+use League\Container\ServiceProvider\{BootableServiceProviderInterface, ServiceProviderAggregateInterface};
 use Traversable;
 
 class ProviderAggregate implements ProviderAggregateInterface, ServiceProviderAggregateInterface
@@ -17,7 +16,7 @@ class ProviderAggregate implements ProviderAggregateInterface, ServiceProviderAg
 
     public function __construct(array $providers)
     {
-        foreach ($providers as $provider) $this->providers[] = $this->resolve($provider);
+        foreach($providers as $provider) $this->providers[] = $this->resolve($provider);
     }
 
     public function resolve(mixed $provider): ProviderInterface
@@ -32,12 +31,12 @@ class ProviderAggregate implements ProviderAggregateInterface, ServiceProviderAg
 
     public function provides(string $id): bool
     {
-        foreach ($this->getIterator() as $provider) /** @var ProviderInterface $provider */ if ($provider->provides($id)) return true; return false;
+        foreach($this->getIterator() as $provider) /** @var ProviderInterface $provider */ if($provider->provides($id)) return true; return false;
     }
 
     public function register(string $service): void
     {
-        if (false === $this->provides($service)) throw new ContainerException(sprintf('(%s) is not provided by a service provider', $service));
+        if(false === $this->provides($service)) throw new ContainerException(sprintf('(%s) is not provided by a service provider', $service));
 
         foreach($this->getIterator() as $provider)
         {

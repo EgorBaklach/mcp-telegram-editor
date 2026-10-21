@@ -13,18 +13,19 @@ class DownDispatcher extends AbstractDispatcher
 
         foreach($migrations as $row) if(!$this->rollbackMigration($row)) return false;
 
-        $this->command->logger->info('Откат миграций успешно завершен!'); return true;
+        return $this->command->logger->info('Откат миграций успешно завершен!');
     }
 
     private function getMigrationsToRollback(string|int|null $target): array
     {
         $query = Migration::query()->orderByDesc('id');
 
-        return match($target)
+        return match(true)
         {
-            null => $query->where('batch', Migration::query()->max('batch'))->get()->all() ?: [], 'all' => $query->get()->all(),
-
-            default => $query->where('id', (int) $target)->get()->all()
+            $target === null => $query->where('batch', Migration::query()->max('batch'))->get()->all() ?: [],
+            $target === 'all' => $query->get()->all(),
+            ctype_digit((string) $target) => $query->where('id', (int) $target)->get()->all(),
+            default => []
         };
     }
 
@@ -34,18 +35,18 @@ class DownDispatcher extends AbstractDispatcher
 
         if(!file_exists($row->migration))
         {
-            $this->command->logger->error("Файл миграции {$row->migration} не найден. Отмена операции."); return false;
+            return $this->command->logger->error("Файл миграции {$row->migration} не найден. Отмена операции.");
         }
 
         try
         {
             $this->runMigration($row->migration); Migration::query()->where('id', $row->id)->delete();
 
-            $this->command->logger->info("Миграция {$row->migration} успешно откачена."); return true;
+            return $this->command->logger->info("Миграция {$row->migration} успешно откачена.");
         }
         catch(Throwable $e)
         {
-            $this->command->logger->error("Ошибка при откате миграции {$row->migration}: {$e->getMessage()}"); return false;
+            return $this->command->logger->error("Ошибка при откате миграции {$row->migration}: {$e->getMessage()}");
         }
     }
 }

@@ -37,7 +37,7 @@ abstract class AbstractCommand extends Command implements CommandInterface, Macr
         {
             if($this->hasOption($option))
             {
-                $this->container->get($class)->build($this)->dispatch($this->getOption($option)); return Command::SUCCESS;
+                return $this->container->get($class)->build($this)->dispatch($this->getOption($option)) ? Command::SUCCESS : Command::FAILURE;
             }
         }
 

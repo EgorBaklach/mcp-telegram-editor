@@ -210,7 +210,7 @@ docker exec mcp-telegram-editor php bin/console.php source:monitor --openrouter=
 
 ## 🧪 Тестирование
 
-Все тесты запускаются внутри контейнера через PHPUnit (`38 tests, 164 assertions`):
+Все тесты запускаются внутри контейнера через PHPUnit (`23 tests, 123 assertions`):
 
 ```bash
 docker exec mcp-telegram-editor vendor/bin/phpunit --testdox
@@ -220,14 +220,12 @@ docker exec mcp-telegram-editor vendor/bin/phpunit --testdox
 
 | Группа тестов | Что проверяется |
 |---|---|
-| `Application` | Инициализация DI-контейнера и разрешение всех MCP-сервисов. |
-| `Database` | Подключение к PostgreSQL, запись и чтение через Eloquent. |
-| `Dispatchers` | Накатывание/откат миграций (по батчам, по ID, все сразу), создание файлов миграций (`MigrationMixin`). |
-| `McpController` | Корректный ответ 204 на OPTIONS-запросы (CORS preflight). |
-| `McpJsonStrategy` | Установка CORS-заголовков. |
-| `OpenRouter` | `SyncDispatcher` (`OpenRouterMixin`), `CheckNewModelsTool`, `MarkPublishedTool`, а также автоматическое переключение `OpenRouter` клиента на резервный NAT64-шлюз при сбое (11 тестов). |
-| `SourceMonitor` | Атомарные блокировки `Redis` (`SET NX EX` / `DEL`), жизненный цикл эфемерного `HOME` в `AgyAgent`, пропуск дублей по локу, очистка в `finally` и маршрутизация флагов `SourceMonitorCommand` (`CommandMixin`) (5 тестов). |
-| `Telegram` | `PublishDispatcher`, `DeleteDispatcher`, `DeleteByTextDispatcher`, `EditDispatcher`, `SearchPostsDispatcher` и `SearchPostsTool` с изолированными мок-объектами HTTP-клиента (12 тестов). |
+| `Application` | Инициализация DI-контейнера, инфлекторов миксинов (`MixinInflector`) и разрешение всех сервисов. |
+| `Http` | Обработка CORS preflight (`McpController::options`) и установка CORS-заголовков в `McpJsonStrategy`. |
+| `DatabaseMigration` | Подключение к PostgreSQL, `UpDispatcher`, `DownDispatcher` (по батчам, по ID, `all`, защита от нечисловых строк) и `CreateDispatcher` (`MigrationMixin`). |
+| `Telegram` | Все диспетчеры и MCP-инструменты Telegram (`Publish`, `Edit`, `Delete`, `DeleteByText`, `SearchPosts`), откат транзакций при сбое API и экранирование `%`/`_` в `ILIKE` (`TelegramMixin`). |
+| `OpenRouter` | `SyncDispatcher` (`OpenRouterMixin`, включая корректную обработку `NULL` в `released_at`), `CheckNewModelsTool`, `MarkPublishedTool` и автоматическое переключение `OpenRouter` клиента на резервный NAT64-шлюз. |
+| `SourceMonitor` | Атомарные блокировки `Redis` (`SET NX EX` / `DEL`), жизненный цикл эфемерного `HOME` в `AgyAgent`, пропуск дублей по локу, очистка в `finally` и коды возврата `SourceMonitorCommand` (`CommandMixin`). |
 
 ---
 
@@ -267,7 +265,7 @@ docker exec mcp-telegram-editor vendor/bin/phpunit --testdox
 │       ├── Logging/            # ConsoleLogger, StderrLogger
 │       ├── Mixins/             # MacroableInterface, CommandMixin, MigrationMixin, OpenRouterMixin, RedisMixin, TelegramMixin
 │       └── Providers/          # DatabaseServiceProvider, McpServiceProvider
-├── tests/                      # Тесты PHPUnit (38 тестов)
+├── tests/                      # Тесты PHPUnit (23 теста)
 ├── _ide_helper.php             # Стабы для IDE (Intelephense)
 ├── docker-compose.yml
 └── .env.example

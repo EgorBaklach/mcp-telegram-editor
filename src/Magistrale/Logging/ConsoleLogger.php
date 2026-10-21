@@ -21,8 +21,8 @@ class ConsoleLogger implements ConsoleLoggerInterface
         $this->output->writeln("<comment>{$message}</comment>"); return true;
     }
 
-    public function error(string $message): true
+    public function error(string $message): false
     {
-        $this->output->writeln("<error>{$message}</error>"); return true;
+        $this->output->writeln("<error>{$message}</error>"); return false;
     }
 }

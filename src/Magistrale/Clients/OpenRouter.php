@@ -7,14 +7,16 @@ use Throwable;
 
 class OpenRouter extends Client
 {
+    private array $config;
+
     public function __construct(private DefinitionContainerInterface $container)
     {
-        parent::__construct($this->container->get('openrouter'));
+        $this->config = $this->container->get('openrouter'); parent::__construct($this->config);
     }
 
     public function getModels(): ResponseInterface
     {
-        foreach($this->container->get('openrouter')['nat64_ips'] ?? [] as $ip)
+        foreach($this->config['nat64_ips'] ?? [] as $ip)
         {
             try
             {

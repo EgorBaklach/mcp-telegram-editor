@@ -1,7 +1,6 @@
 <?php namespace Framework\Contracts\Provider;
 
-use League\Container\ContainerAwareInterface;
-use League\Container\DefinitionContainerInterface;
+use League\Container\{ContainerAwareInterface, DefinitionContainerInterface};
 
 interface ProviderAggregateInterface
 {

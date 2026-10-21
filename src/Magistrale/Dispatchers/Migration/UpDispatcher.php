@@ -14,7 +14,7 @@ class UpDispatcher extends AbstractDispatcher
 
         $batch = Migration::query()->max('batch') ?? 0; foreach($files as $file) if(!$this->applyMigration($file, $batch + 1)) return false;
 
-        $this->command->logger->info('Все новые миграции успешно применены!'); return true;
+        return $this->command->logger->info('Все новые миграции успешно применены!');
     }
 
     private function getPendingFiles(): array
@@ -30,11 +30,11 @@ class UpDispatcher extends AbstractDispatcher
         {
             $this->runMigration($file); Migration::query()->create(['migration' => $file, 'batch' => $batch]);
 
-            $this->command->logger->info("Миграция {$file} успешно выполнена."); return true;
+            return $this->command->logger->info("Миграция {$file} успешно выполнена.");
         }
         catch(Throwable $e)
         {
-            $this->command->logger->error("Ошибка при выполнении миграции {$file}: {$e->getMessage()}"); return false;
+            return $this->command->logger->error("Ошибка при выполнении миграции {$file}: {$e->getMessage()}");
         }
     }
 }

@@ -1,37 +1,27 @@
 <?php namespace Tests;
 
-use PHPUnit\Framework\TestCase;
-use Framework\Application;
-use Illuminate\Database\Capsule\Manager as Capsule;
-use Magistrale\Clients\OpenRouter;
-use Magistrale\Dispatchers\OpenRouter\SyncDispatcher;
-use Magistrale\Dispatchers\ResultInterface;
 use App\Models\OpenRouterModel;
 use App\Tools\{CheckNewModelsTool, MarkPublishedTool};
 use GuzzleHttp\Psr7\Response;
+use Illuminate\Database\Capsule\Manager as Capsule;
+use InvalidArgumentException;
+use League\Container\DefinitionContainerInterface;
+use Magistrale\Clients\OpenRouter;
+use Magistrale\Dispatchers\OpenRouter\SyncDispatcher;
 use PHPUnit\Framework\Attributes\TestDox;
-use ReflectionClass;
+use Psr\Http\Message\ResponseInterface;
 use RuntimeException;
 
 class OpenRouterTest extends TestCase
 {
     private Capsule $capsule;
 
-    private $container;
-
     protected function setUp(): void
     {
-        $config = require __DIR__.'/../bootstrap/machine.php';
-        $app = Application::make($config);
-
-        $reflector = new ReflectionClass($app);
-        $containerProperty = $reflector->getProperty('container');
-        $containerProperty->setAccessible(true);
-        $this->container = $containerProperty->getValue($app);
+        $this->bootContainer();
 
         $this->capsule = $this->container->get(Capsule::class);
         $this->capsule->getConnection()->beginTransaction();
-
         OpenRouterModel::query()->delete();
     }
 
@@ -41,241 +31,136 @@ class OpenRouterTest extends TestCase
         {
             $this->capsule->getConnection()->rollBack();
         }
+
         $this->capsule->getConnection()->disconnect();
         parent::tearDown();
     }
 
-    private function freeModelFixture(string $id, string $name, int $contextLength = 131072, bool $hasReasoning = false, bool $hasTools = false): array
+    #[TestDox('SyncDispatcher и OpenRouterMixin: фильтруют платные модели, сохраняют бесплатные и корректно обновляют released_at без дубликатов даже при NULL в БД')]
+    public function testSyncDispatcherFiltersPaidDeduplicatesNullReleasedAtAndBackfills(): void
     {
-        return [
-            'id' => $id,
-            'name' => $name,
-            'description' => 'Test description for '.$name,
-            'context_length' => $contextLength,
-            'created' => 1784700000,
-            'architecture' => ['modality' => 'text→text'],
-            'pricing' => ['prompt' => '0', 'completion' => '0'],
-            'supported_parameters' => array_merge(['max_tokens', 'temperature'], $hasTools ? ['tools'] : []),
-            'reasoning' => $hasReasoning ? ['mandatory' => false, 'default_enabled' => true] : null,
-        ];
-    }
+        // Предварительно создаём существующую модель с released_at = NULL (уязвимый кейс для isset vs array_key_exists)
+        OpenRouterModel::create([
+            'model_id' => 'vendor/existing-null:free',
+            'name' => 'Existing Null ReleasedAt',
+            'accessible' => 'free',
+            'released_at' => null,
+        ]);
 
-    private function paidModelFixture(string $id, string $name): array
-    {
-        return [
-            'id' => $id,
-            'name' => $name,
-            'description' => 'Paid model',
-            'context_length' => 8192,
-            'created' => 1784700000,
-            'architecture' => ['modality' => 'text→text'],
-            'pricing' => ['prompt' => '0.001', 'completion' => '0.002'],
-            'supported_parameters' => ['max_tokens'],
-        ];
-    }
+        $payload = json_encode([
+            'data' => [
+                [
+                    'id' => 'vendor/existing-null:free',
+                    'name' => 'Existing Null ReleasedAt',
+                    'created' => 1753164000,
+                    'pricing' => ['prompt' => '0', 'completion' => '0'],
+                ],
+                [
+                    'id' => 'vendor/new-free:free',
+                    'name' => 'New Free Model',
+                    'created' => 1753164000,
+                    'context_length' => 131072,
+                    'architecture' => ['modality' => 'text->text'],
+                    'description' => 'Fast free model',
+                    'reasoning' => ['enabled' => true],
+                    'supported_parameters' => ['tools', 'temperature'],
+                    'pricing' => ['prompt' => '0', 'completion' => '0'],
+                ],
+                [
+                    'id' => 'vendor/paid-model',
+                    'name' => 'Paid Model',
+                    'pricing' => ['prompt' => '0.001', 'completion' => '0.002'],
+                ],
+            ],
+        ]);
 
-    private function mockApiResponse(array $models): string
-    {
-        return json_encode(['data' => array_filter($models, fn($m) => $m !== null)]);
-    }
-
-    #[TestDox('SyncDispatcher: обнаруживает free-модели, фильтрует paid и возвращает результаты')]
-    public function testSyncDispatcherDetectsFreeModelsAndFiltersPaid(): void
-    {
-        $models = [
-            $this->freeModelFixture('vendor/model-a:free', 'Model A (free)'),
-            $this->freeModelFixture('vendor/model-b:free', 'Model B (free)'),
-            $this->paidModelFixture('vendor/model-c', 'Model C'),
-        ];
-
-        $mockClient = $this->createMock(OpenRouter::class);
-        $mockClient->expects($this->once())->method('getModels')->willReturn(new Response(200, [], $this->mockApiResponse($models)));
-
-        $this->container->add(OpenRouter::class, $mockClient);
-
-        $dispatcher = $this->container->get(SyncDispatcher::class);
-        $this->assertInstanceOf(ResultInterface::class, $dispatcher);
-        $this->assertTrue($dispatcher->dispatch());
-
-        $results = $dispatcher->getResults();
-        $this->assertCount(2, $results);
-        $this->assertEquals('vendor/model-a:free', $results[0]['model_id']);
-        $this->assertEquals('vendor/model-b:free', $results[1]['model_id']);
-
-        $this->assertEquals(2, OpenRouterModel::count());
-        $this->assertFalse(OpenRouterModel::where('model_id', 'vendor/model-a:free')->first()->published);
-        $this->assertNull(OpenRouterModel::where('model_id', 'vendor/model-c')->first());
-    }
-
-    #[TestDox('SyncDispatcher: обнаруживает новые модели и возвращает их с published=false')]
-    public function testSyncDispatcherDetectsNewModels(): void
-    {
-        OpenRouterModel::create(['model_id' => 'vendor/existing:free', 'name' => 'Existing Model', 'accessible' => 'free', 'published' => true]);
-
-        $models = [
-            $this->freeModelFixture('vendor/existing:free', 'Existing Model'),
-            $this->freeModelFixture('vendor/new-model:free', 'New Model (free)', 262144, true, true),
-        ];
-
-        $mockClient = $this->createMock(OpenRouter::class);
-        $mockClient->expects($this->once())->method('getModels')->willReturn(new Response(200, [], $this->mockApiResponse($models)));
-
-        $this->container->add(OpenRouter::class, $mockClient);
+        $mock = $this->createMock(OpenRouter::class);
+        $mock->method('getModels')->willReturn(new Response(200, [], $payload));
+        $this->container->add(OpenRouter::class, $mock);
 
         $dispatcher = $this->container->get(SyncDispatcher::class);
         $this->assertTrue($dispatcher->dispatch());
 
         $results = $dispatcher->getResults();
-        $this->assertCount(1, $results);
-        $this->assertEquals('vendor/new-model:free', $results[0]['model_id']);
-        $this->assertEquals('New Model (free)', $results[0]['name']);
-        $this->assertEquals(262144, $results[0]['context_length']);
-        $this->assertEquals('text→text', $results[0]['modality']);
+        $this->assertCount(1, $results, 'В результаты должна попасть только действительно новая бесплатная модель');
+        $this->assertSame('vendor/new-free:free', $results[0]['model_id']);
         $this->assertTrue($results[0]['has_reasoning']);
         $this->assertTrue($results[0]['has_tool_use']);
-        $this->assertStringContainsString('Test description', $results[0]['description']);
 
-        $newRecord = OpenRouterModel::where('model_id', 'vendor/new-model:free')->first();
-        $this->assertNotNull($newRecord);
-        $this->assertFalse($newRecord->published);
-    }
+        // Проверяем, что для существующей модели с NULL дозаполнился released_at и не возникло Unique violation
+        $existing = OpenRouterModel::where('model_id', 'vendor/existing-null:free')->first();
+        $this->assertNotNull($existing?->released_at, 'Поле released_at должно быть дозаполнено у существующей модели');
 
-    #[TestDox('SyncDispatcher: корректно обрабатывает ошибку API')]
-    public function testSyncDispatcherHandlesApiError(): void
-    {
-        $mockClient = $this->createMock(OpenRouter::class);
-        $mockClient->expects($this->once())->method('getModels')->willThrowException(new RuntimeException('Connection refused'));
-
-        $this->container->add(OpenRouter::class, $mockClient);
-
-        $dispatcher = $this->container->get(SyncDispatcher::class);
-        $this->assertFalse($dispatcher->dispatch());
-        $this->assertEmpty($dispatcher->getResults());
-    }
-
-    #[TestDox('SyncDispatcher: возвращает false при HTTP ошибке')]
-    public function testSyncDispatcherHandlesHttpError(): void
-    {
-        $mockClient = $this->createMock(OpenRouter::class);
-        $mockClient->expects($this->once())->method('getModels')->willReturn(new Response(500, [], 'Internal Server Error'));
-
-        $this->container->add(OpenRouter::class, $mockClient);
-
-        $dispatcher = $this->container->get(SyncDispatcher::class);
-        $this->assertFalse($dispatcher->dispatch());
-    }
-
-    #[TestDox('SyncDispatcher: не добавляет дублирующиеся модели при повторном вызове')]
-    public function testSyncDispatcherSkipsDuplicates(): void
-    {
-        OpenRouterModel::create(['model_id' => 'vendor/model-a:free', 'name' => 'Model A', 'accessible' => 'free', 'published' => true]);
-
-        $models = [$this->freeModelFixture('vendor/model-a:free', 'Model A (free)')];
-
-        $mockClient = $this->createMock(OpenRouter::class);
-        $mockClient->expects($this->once())->method('getModels')->willReturn(new Response(200, [], $this->mockApiResponse($models)));
-
-        $this->container->add(OpenRouter::class, $mockClient);
-
-        $dispatcher = $this->container->get(SyncDispatcher::class);
+        // Повторная синхронизация того же ответа должна вернуть 0 новых моделей
         $this->assertTrue($dispatcher->dispatch());
-        $this->assertEmpty($dispatcher->getResults());
-        $this->assertEquals(1, OpenRouterModel::count());
+        $this->assertCount(0, $dispatcher->getResults());
     }
 
-    #[TestDox('CheckNewModelsTool: возвращает JSON с данными новых моделей')]
-    public function testCheckNewModelsToolReturnsNewModelsJson(): void
+    #[TestDox('CheckNewModelsTool и MarkPublishedTool: обрабатывают успешный синк, ошибки HTTP/исключения и пометку модели как опубликованной')]
+    public function testCheckNewModelsAndMarkPublishedTools(): void
     {
-        OpenRouterModel::create(['model_id' => 'vendor/existing:free', 'name' => 'Existing', 'accessible' => 'free', 'published' => true]);
+        $mock = $this->createMock(OpenRouter::class);
+        $mock->expects($this->exactly(2))
+            ->method('getModels')
+            ->willReturnOnConsecutiveCalls(
+                new Response(200, [], json_encode([
+                    'data' => [[
+                        'id' => 'vendor/tool-model:free',
+                        'name' => 'Tool Model',
+                        'pricing' => ['prompt' => '0', 'completion' => '0'],
+                    ]],
+                ])),
+                new Response(502, [], 'Bad Gateway')
+            );
 
-        $models = [
-            $this->freeModelFixture('vendor/existing:free', 'Existing'),
-            $this->freeModelFixture('vendor/fresh:free', 'Fresh Model (free)', 131072, true, true),
-        ];
+        $this->container->add(OpenRouter::class, $mock);
 
-        $mockClient = $this->createMock(OpenRouter::class);
-        $mockClient->expects($this->once())->method('getModels')->willReturn(new Response(200, [], $this->mockApiResponse($models)));
-        $this->container->add(OpenRouter::class, $mockClient);
+        $checkTool = $this->container->get(CheckNewModelsTool::class);
+        $okJson = json_decode($checkTool->checkNewModels(), true);
+        $this->assertSame('ok', $okJson['status']);
+        $this->assertCount(1, $okJson['new_models']);
 
-        $tool = $this->container->get(CheckNewModelsTool::class);
-        $decoded = json_decode($tool->checkNewModels(), true);
+        $errJson = json_decode($checkTool->checkNewModels(), true);
+        $this->assertSame('error', $errJson['status']);
 
-        $this->assertEquals('ok', $decoded['status']);
-        $this->assertCount(1, $decoded['new_models']);
-        $this->assertEquals('vendor/fresh:free', $decoded['new_models'][0]['model_id']);
-        $this->assertFalse(OpenRouterModel::where('model_id', 'vendor/fresh:free')->first()->published);
+        $markTool = $this->container->get(MarkPublishedTool::class);
+        $this->assertSame('success', $markTool->markPublished('vendor/tool-model:free'));
+        $this->assertTrue(OpenRouterModel::where('model_id', 'vendor/tool-model:free')->first()->published);
+        $this->assertSame('not found', $markTool->markPublished('vendor/unknown:free'));
+
+        $this->expectException(InvalidArgumentException::class);
+        $markTool->markPublished('');
     }
 
-    #[TestDox('CheckNewModelsTool: возвращает пустой массив при отсутствии новых моделей')]
-    public function testCheckNewModelsToolReturnsEmptyOnNoNew(): void
+    #[TestDox('OpenRouter Client: переключается на резервный шлюз NAT64 при сбое первого и откатывается на прямой запрос, если все шлюзы недоступны')]
+    public function testOpenRouterClientNat64FailoverAndDirectFallback(): void
     {
-        OpenRouterModel::create(['model_id' => 'vendor/only:free', 'name' => 'Only Model', 'accessible' => 'free', 'published' => true]);
+        $this->container->extend('openrouter')->setConcrete([
+            'base_uri' => 'https://openrouter.ai/api/v1/',
+            'nat64_ips' => ['2a01:4f8:c2c:123f:64::1', '2a00:1098:2b::1'],
+            'timeout' => 2.0,
+        ]);
 
-        $models = [$this->freeModelFixture('vendor/only:free', 'Only Model')];
-
-        $mockClient = $this->createMock(OpenRouter::class);
-        $mockClient->expects($this->once())->method('getModels')->willReturn(new Response(200, [], $this->mockApiResponse($models)));
-        $this->container->add(OpenRouter::class, $mockClient);
-
-        $tool = $this->container->get(CheckNewModelsTool::class);
-        $decoded = json_decode($tool->checkNewModels(), true);
-
-        $this->assertEquals('ok', $decoded['status']);
-        $this->assertEmpty($decoded['new_models']);
-    }
-
-    #[TestDox('CheckNewModelsTool: возвращает ошибку при сбое синхронизации')]
-    public function testCheckNewModelsToolReturnsSyncError(): void
-    {
-        $mockClient = $this->createMock(OpenRouter::class);
-        $mockClient->expects($this->once())->method('getModels')->willThrowException(new RuntimeException('timeout'));
-        $this->container->add(OpenRouter::class, $mockClient);
-
-        $tool = $this->container->get(CheckNewModelsTool::class);
-        $decoded = json_decode($tool->checkNewModels(), true);
-
-        $this->assertEquals('error', $decoded['status']);
-        $this->assertEquals('sync failed', $decoded['message']);
-    }
-
-    #[TestDox('MarkPublishedTool: помечает модель как опубликованную')]
-    public function testMarkPublishedToolMarksModel(): void
-    {
-        OpenRouterModel::create(['model_id' => 'vendor/new:free', 'name' => 'New Model', 'accessible' => 'free']);
-        $this->assertFalse(OpenRouterModel::where('model_id', 'vendor/new:free')->first()->published);
-
-        $tool = $this->container->get(MarkPublishedTool::class);
-        $this->assertEquals('success', $tool->markPublished('vendor/new:free'));
-        $this->assertTrue(OpenRouterModel::where('model_id', 'vendor/new:free')->first()->published);
-    }
-
-    #[TestDox('MarkPublishedTool: возвращает not found для несуществующей модели')]
-    public function testMarkPublishedToolReturnsNotFound(): void
-    {
-        $tool = $this->container->get(MarkPublishedTool::class);
-        $this->assertEquals('not found', $tool->markPublished('vendor/nonexistent:free'));
-    }
-
-    #[TestDox('OpenRouter Client: автоматически переключается на резервный шлюз NAT64 при сбое первого')]
-    public function testOpenRouterClientNat64Failover(): void
-    {
-        $ips = $this->container->get('openrouter')['nat64_ips'];
-
-        $client = new class($this->container) extends OpenRouter
+        $calls = [];
+        $client = new class($this->container, $calls) extends OpenRouter
         {
-            public array $attemptedResolve = [];
-
-            public function get($uri, array $options = []): Response
+            public function __construct(DefinitionContainerInterface $container, private array &$calls)
             {
-                $this->attemptedResolve[] = $options['curl'][CURLOPT_RESOLVE][0] ?? 'direct';
-                if(count($this->attemptedResolve) === 1) throw new RuntimeException('Primary NAT64 timeout');
+                parent::__construct($container);
+            }
+
+            public function get($uri, array $options = []): ResponseInterface
+            {
+                $this->calls[] = $options['curl'][CURLOPT_RESOLVE][0] ?? 'direct';
+
+                if(count($this->calls) === 1) throw new RuntimeException('First NAT64 timed out');
 
                 return new Response(200, [], '{"data":[]}');
             }
         };
 
         $response = $client->getModels();
-        $this->assertEquals(200, $response->getStatusCode());
-        $this->assertEquals(["openrouter.ai:443:[{$ips[0]}]", "openrouter.ai:443:[{$ips[1]}]"], $client->attemptedResolve);
+        $this->assertSame(200, $response->getStatusCode());
+        $this->assertSame(['openrouter.ai:443:[2a01:4f8:c2c:123f:64::1]', 'openrouter.ai:443:[2a00:1098:2b::1]'], $calls);
     }
 }

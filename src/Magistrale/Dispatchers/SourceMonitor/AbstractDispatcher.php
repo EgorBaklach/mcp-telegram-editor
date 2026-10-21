@@ -27,7 +27,7 @@ abstract class AbstractDispatcher implements DispatcherInterface
 
         if(!$payload || !isset($agents['drivers'][$payload]))
         {
-            $this->command->logger->error('Укажите доступного AI-агента ('.implode(', ', array_keys($agents['drivers'])).') через --'.static::sourceName.'=ИМЯ_АГЕНТА'); return false;
+            return $this->command->logger->error('Укажите доступного AI-агента ('.implode(', ', array_keys($agents['drivers'])).') через --'.static::sourceName.'=ИМЯ_АГЕНТА');
         }
 
         if($this->redis->isLocked(static::lockKey))
@@ -45,7 +45,7 @@ abstract class AbstractDispatcher implements DispatcherInterface
 
             if(!$agent->run('Активируй скилл source-monitor и выполни pipeline для источника: '.static::sourceName))
             {
-                $this->command->logger->error('Ошибка выполнения агента ('.static::sourceName.'): '.($agent->getErrorOutput() ?: $agent->getOutput())); return false;
+                return $this->command->logger->error('Ошибка выполнения агента ('.static::sourceName.'): '.($agent->getErrorOutput() ?: $agent->getOutput()));
             }
 
             if($output = $agent->getOutput()) $this->command->logger->comment($output);
@@ -54,7 +54,7 @@ abstract class AbstractDispatcher implements DispatcherInterface
         }
         catch(Throwable $e)
         {
-            $this->command->logger->error('Сбой запуска агента ('.static::sourceName."): {$e->getMessage()}"); return false;
+            return $this->command->logger->error('Сбой запуска агента ('.static::sourceName."): {$e->getMessage()}");
         }
         finally
         {

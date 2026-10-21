@@ -87,11 +87,11 @@ docker exec mcp-telegram-editor php bin/console.php source:monitor --openrouter=
 
 ## 🧪 Тестирование и Среда разработки (LSP/IDE)
 
-* Запуск всех тестов (`38 tests, 164 assertions`):
+* Запуск всех тестов (`23 tests, 123 assertions`):
   ```bash
   docker exec mcp-telegram-editor vendor/bin/phpunit --testdox
   ```
-* Покрытие включает: `ApplicationTest`, `DatabaseTest`, `DispatchersTest` (миграции), `McpControllerTest`, `McpJsonStrategyTest`, `OpenRouterTest` (11 тестов, включая NAT64 failover), `SourceMonitorTest` (5 тестов: Redis-локи, жизненный цикл эфемерного `HOME`, выбор AI-агентов) и `TelegramTest` (12 тестов).
+* Покрытие включает: `ApplicationTest` (DI-контейнер и система миксинов), `HttpTest` (CORS и стратегии ответов), `DatabaseMigrationTest` (Eloquent и все сценарии `db:migrate`, включая защиту от невалидных целей), `TelegramTest` (все 6 инструментов, откат транзакций при сетевых сбоях и экранирование спецсимволов `ILIKE`), `OpenRouterTest` (`SyncDispatcher`, работа с `NULL` в `released_at`, NAT64 failover) и `SourceMonitorTest` (Redis-локи, жизненный цикл эфемерного `HOME`, коды возврата CLI).
 * Для помощи LSP/IDE (Intelephense) используется файл `_ide_helper.php`:
   * **Обязательное пополнение для миксинов**: При создании новых миксинов (`src/Magistrale/Mixins/*Mixin.php`) или добавлении внутри замыканий миксина обратных обращений к свойствам/константам/методам целевого инстанса (`$this` или `static::`), агент обязан автоматически дополнять `_ide_helper.php` соответствующими `@method`-аннотациями на целевом классе и стабами констант/свойств на классе миксина, чтобы избежать предупреждений LSP (`Undefined method` / `Undefined class constant`).
   * В остальных случаях (вне системы миксинов) дополнять `_ide_helper.php` заглушками можно только по прямому запросу пользователя.

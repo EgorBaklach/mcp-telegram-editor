@@ -2,7 +2,7 @@
 
 use Framework\Contracts\Provider\{ProviderAggregateInterface, ProviderInterface};
 use League\Container\DefinitionContainerInterface;
-use League\Container\ServiceProvider\{AbstractServiceProvider, ServiceProviderAggregateInterface};
+use League\Container\ServiceProvider\AbstractServiceProvider;
 
 abstract class ProviderAbstract extends AbstractServiceProvider implements ProviderInterface
 {

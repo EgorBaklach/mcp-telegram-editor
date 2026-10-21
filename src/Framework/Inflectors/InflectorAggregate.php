@@ -13,7 +13,7 @@ class InflectorAggregate implements InflectorAggregateInterface
 
     public function __construct(array $inflectors)
     {
-        foreach ($inflectors as $type => $inflector) $this->inflectors[] = $this->resolve($type, $inflector);
+        foreach($inflectors as $type => $inflector) $this->inflectors[] = $this->resolve($type, $inflector);
     }
 
     public function resolve(string $type, mixed $inflector): Inflector
@@ -33,11 +33,11 @@ class InflectorAggregate implements InflectorAggregateInterface
 
     public function inflect($object)
     {
-        if (!is_object($object)) return $object;
+        if(!is_object($object)) return $object;
 
-        foreach ($this->getIterator() as $inflector)
+        foreach($this->getIterator() as $inflector)
         {
-            /** @var Inflector $inflector */ $type = $inflector->getType(); if (!$object instanceof $type) continue;
+            /** @var Inflector $inflector */ $type = $inflector->getType(); if(!$object instanceof $type) continue;
 
             $inflector->setContainer($this->getContainer()); $inflector->inflect($object);
         }

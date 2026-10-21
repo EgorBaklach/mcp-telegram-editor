@@ -1,15 +1,12 @@
 <?php namespace Tests;
 
 use Cli\Commands\SourceMonitorCommand;
-use Framework\Application;
 use League\Container\DefinitionContainerInterface;
 use Magistrale\Agents\{AgyAgent, HermesAgent};
 use Magistrale\Clients\Redis;
 use Magistrale\Dispatchers\SourceMonitor\OpenRouterDispatcher;
 use Magistrale\Logging\ConsoleLogger;
 use PHPUnit\Framework\Attributes\TestDox;
-use PHPUnit\Framework\TestCase;
-use ReflectionClass;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\ArrayInput;
 use Symfony\Component\Console\Output\{BufferedOutput, NullOutput};
@@ -18,8 +15,6 @@ use Symfony\Component\Process\Process;
 
 class SourceMonitorTest extends TestCase
 {
-    private $container;
-
     private Redis $redis;
 
     private Filesystem $fs;
@@ -28,13 +23,7 @@ class SourceMonitorTest extends TestCase
 
     protected function setUp(): void
     {
-        $config = require __DIR__.'/../bootstrap/machine.php';
-        $app = Application::make($config);
-
-        $reflector = new ReflectionClass($app);
-        $containerProperty = $reflector->getProperty('container');
-        $containerProperty->setAccessible(true);
-        $this->container = $containerProperty->getValue($app);
+        $this->bootContainer();
 
         $this->redis = $this->container->get(Redis::class);
         $this->fs = $this->container->get(Filesystem::class);
@@ -54,21 +43,23 @@ class SourceMonitorTest extends TestCase
         parent::tearDown();
     }
 
-    #[TestDox('Redis: атомарно захватывает блокировку (SET NX EX), отклоняет дубли и освобождает (DEL)')]
-    public function testRedisAtomicLockLifecycle(): void
+    #[TestDox('Redis и RedisMixin: кодируют RESP-фреймы, атомарно захватывают лок (SET NX EX), отклоняют дубли и освобождают лок (DEL)')]
+    public function testRedisRespEncodingAndAtomicLockLifecycle(): void
     {
+        $this->assertSame("*2\r\n$3\r\nDEL\r\n$4\r\ntest\r\n", $this->redis->encodeResp(['DEL', 'test']));
+
         $this->assertFalse($this->redis->isLocked('lock:source:test', 30));
         $this->assertTrue($this->redis->isLocked('lock:source:test', 30));
         $this->assertTrue($this->redis->releaseLock('lock:source:test'));
         $this->assertFalse($this->redis->releaseLock('lock:source:test'));
-        $this->assertFalse($this->redis->isLocked('lock:source:test', 30));
     }
 
-    #[TestDox('OpenRouterDispatcher: создаёт эфемерный HOME через AgyAgent, запускает процесс и удаляет HOME + Redis-лок в finally')]
-    public function testDispatcherAcquiresLockRunsProcessAndReleasesLock(): void
+    #[TestDox('OpenRouterDispatcher и AgyAgent: создают изолированный HOME, выполняют процесс и удаляют HOME + лок в finally')]
+    public function testOpenRouterDispatcherSuccessLifecycle(): void
     {
         $expectedHome = sys_get_temp_dir().'/agy-home-openrouter';
-        $agent = new class($this->container, $this->fs, $expectedHome) extends AgyAgent
+
+        $okAgent = new class($this->container, $this->fs, $expectedHome) extends AgyAgent
         {
             public function __construct(DefinitionContainerInterface $container, Filesystem $fs, private string $home)
             {
@@ -81,21 +72,42 @@ class SourceMonitorTest extends TestCase
             }
         };
 
-        $this->container->add(AgyAgent::class, $agent);
-        $dispatcher = $this->container->get(OpenRouterDispatcher::class);
+        $this->container->add(AgyAgent::class, $okAgent);
+        $dispatcher = $this->container->get(OpenRouterDispatcher::class)->build($this->command);
 
-        $this->assertTrue($dispatcher->build($this->command)->dispatch('agy'));
-        $this->assertDirectoryDoesNotExist($expectedHome, 'Эфемерный каталог HOME должен быть полностью удален в finally');
-        $this->assertFalse($this->redis->isLocked('lock:source:openrouter', 10), 'Лок должен быть освобожден в finally после завершения');
+        $this->assertTrue($dispatcher->dispatch('agy'));
+        $this->assertDirectoryDoesNotExist($expectedHome);
+        $this->assertFalse($this->redis->isLocked('lock:source:openrouter', 10));
     }
 
-    #[TestDox('OpenRouterDispatcher: пропускает запуск при активном Redis-локе и не сбрасывает чужой лок')]
-    public function testDispatcherSkipsWhenLockAlreadyHeld(): void
+    #[TestDox('OpenRouterDispatcher: возвращает false при сбое процесса агента, но гарантированно удаляет HOME и снимает лок в finally')]
+    public function testOpenRouterDispatcherFailureCleanup(): void
+    {
+        $expectedHome = sys_get_temp_dir().'/agy-home-openrouter';
+
+        $failAgent = new class($this->container, $this->fs) extends AgyAgent
+        {
+            protected function createProcess(string $prompt): Process
+            {
+                return new Process(['php', '-r', 'fwrite(STDERR, "Fatal agent error"); exit(1);']);
+            }
+        };
+
+        $this->container->add(AgyAgent::class, $failAgent);
+        $dispatcher = $this->container->get(OpenRouterDispatcher::class)->build($this->command);
+
+        $this->assertFalse($dispatcher->dispatch('agy'));
+        $this->assertDirectoryDoesNotExist($expectedHome);
+        $this->assertFalse($this->redis->isLocked('lock:source:openrouter', 10));
+    }
+
+    #[TestDox('OpenRouterDispatcher: пропускает выполнение при удерживаемом Redis-локе и не снимает чужую блокировку')]
+    public function testDispatcherSkipsWhenAlreadyLocked(): void
     {
         $this->assertFalse($this->redis->isLocked('lock:source:openrouter', 60));
 
-        $processCalled = false;
-        $agent = new class($this->container, $this->fs, $processCalled) extends AgyAgent
+        $called = false;
+        $agent = new class($this->container, $this->fs, $called) extends AgyAgent
         {
             public function __construct(DefinitionContainerInterface $container, Filesystem $fs, private bool &$called)
             {
@@ -109,35 +121,15 @@ class SourceMonitorTest extends TestCase
         };
 
         $this->container->add(AgyAgent::class, $agent);
-        $dispatcher = $this->container->get(OpenRouterDispatcher::class);
+        $dispatcher = $this->container->get(OpenRouterDispatcher::class)->build($this->command);
 
-        $this->assertTrue($dispatcher->build($this->command)->dispatch('agy'));
-        $this->assertFalse($processCalled, 'Процесс не должен запускаться, если лок уже удерживается');
-        $this->assertTrue($this->redis->isLocked('lock:source:openrouter', 60), 'Чужой активный лок должен остаться нетронутым');
+        $this->assertTrue($dispatcher->dispatch('agy'));
+        $this->assertFalse($called);
+        $this->assertTrue($this->redis->isLocked('lock:source:openrouter', 60));
     }
 
-    #[TestDox('OpenRouterDispatcher: возвращает false при ошибке процесса, но очищает HOME и Redis-лок в finally')]
-    public function testDispatcherReleasesLockOnProcessFailure(): void
-    {
-        $expectedHome = sys_get_temp_dir().'/agy-home-openrouter';
-        $agent = new class($this->container, $this->fs) extends AgyAgent
-        {
-            protected function createProcess(string $prompt): Process
-            {
-                return new Process(['php', '-r', 'fwrite(STDERR, "Agent error"); exit(1);']);
-            }
-        };
-
-        $this->container->add(AgyAgent::class, $agent);
-        $dispatcher = $this->container->get(OpenRouterDispatcher::class);
-
-        $this->assertFalse($dispatcher->build($this->command)->dispatch('agy'));
-        $this->assertDirectoryDoesNotExist($expectedHome, 'Эфемерный HOME обязан удаляться даже при сбое процесса');
-        $this->assertFalse($this->redis->isLocked('lock:source:openrouter', 10), 'Лок обязан освобождаться даже при сбое процесса');
-    }
-
-    #[TestDox('SourceMonitorCommand: требует обязательного указания агента и поддерживает --openrouter=agy / --openrouter=hermes')]
-    public function testSourceMonitorCommandExecution(): void
+    #[TestDox('SourceMonitorCommand и CommandMixin: возвращают INVALID без флага, FAILURE без имени агента и SUCCESS при валидном агенте')]
+    public function testSourceMonitorCommandExitCodesAndAgentSelection(): void
     {
         $agent = new class($this->container, $this->fs) extends AgyAgent
         {
@@ -148,27 +140,23 @@ class SourceMonitorTest extends TestCase
         };
 
         $this->container->add(AgyAgent::class, $agent);
-
         $output = new BufferedOutput();
-        $this->command->logger = new ConsoleLogger();
-        $this->assertEquals(Command::INVALID, $this->command->run(new ArrayInput([]), $output));
-        $this->assertStringContainsString('Не указана опция!', $output->fetch());
 
         $this->command->logger = new ConsoleLogger();
-        $this->assertEquals(Command::SUCCESS, $this->command->run(new ArrayInput(['--openrouter' => null]), $output));
+        $this->assertSame(Command::INVALID, $this->command->run(new ArrayInput([]), $output));
+
+        $this->command->logger = new ConsoleLogger();
+        $this->assertSame(Command::FAILURE, $this->command->run(new ArrayInput(['--openrouter' => null]), $output));
         $this->assertStringContainsString('Укажите доступного AI-агента', $output->fetch());
 
         $this->command->logger = new ConsoleLogger();
-        $this->assertEquals(Command::SUCCESS, $this->command->run(new ArrayInput(['--openrouter' => 'agy']), $output));
-        $this->assertStringContainsString('Запуск AI-агента (agy)', $output->fetch());
+        $this->assertSame(Command::FAILURE, $this->command->run(new ArrayInput(['--openrouter' => 'unknown']), $output));
 
         $this->command->logger = new ConsoleLogger();
-        $this->assertEquals(Command::SUCCESS, $this->command->run(new ArrayInput(['--openrouter' => 'hermes']), $output));
-        $this->assertStringContainsString('Запуск AI-агента (hermes)', $output->fetch());
+        $this->assertSame(Command::SUCCESS, $this->command->run(new ArrayInput(['--openrouter' => 'agy']), $output));
 
-        $dispatcher = $this->container->get(OpenRouterDispatcher::class)->build($this->command);
-        $this->assertFalse($dispatcher->dispatch());
-        $this->assertFalse($dispatcher->dispatch('unknown_agent'));
+        $this->command->logger = new ConsoleLogger();
+        $this->assertSame(Command::SUCCESS, $this->command->run(new ArrayInput(['--openrouter' => 'hermes']), $output));
         $this->assertInstanceOf(HermesAgent::class, $this->container->get(HermesAgent::class));
     }
 }

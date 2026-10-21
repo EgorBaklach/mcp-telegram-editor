@@ -24,6 +24,6 @@ class CreateDispatcher extends AbstractDispatcher
 
         $this->fs->dumpFile('database/migrations/'.$fileName, $this->fs->readFile('storage/app/templates/migration.php'));
 
-        $this->command->logger->info("Миграция успешно создана: database/migrations/{$fileName}"); return true;
+        return $this->command->logger->info("Миграция успешно создана: database/migrations/{$fileName}");
     }
 }
