@@ -4,7 +4,7 @@ use App\Models\FlOrder;
 use App\Tools\Fl\CheckNewOrdersTool;
 use GuzzleHttp\Psr7\Response;
 use Illuminate\Database\Capsule\Manager as Capsule;
-use Magistrale\Clients\Fl;
+use Magistrale\Clients\FlClient;
 use Magistrale\Dispatchers\Source\FlDispatcher;
 use PHPUnit\Framework\Attributes\TestDox;
 
@@ -83,7 +83,7 @@ class FlTest extends TestCase
         $fullDescription = str_repeat('Требуется спроектировать архитектуру базы данных PostgreSQL, реализовать личный кабинет дилера на Laravel 11 и React, настроить обмен с 1С и очередей в Redis. ', 3);
         $validDetailHtml = '<div id="projectp1005">'.$fullDescription.'</div>';
 
-        $mock = $this->createMock(Fl::class);
+        $mock = $this->createMock(FlClient::class);
         $mock->expects($this->exactly(2))
             ->method('getProjects')
             ->willReturnOnConsecutiveCalls(
@@ -98,7 +98,7 @@ class FlTest extends TestCase
             ->method('getProject')
             ->willReturnCallback(fn(string $uri) => str_contains($uri, '1004') ? new Response(200, [], $shortDetailHtml) : new Response(200, [], $validDetailHtml));
 
-        $this->container->add(Fl::class, $mock);
+        $this->container->add(FlClient::class, $mock);
 
         $dispatcher = $this->container->get(FlDispatcher::class);
         $this->assertTrue($dispatcher->dispatch());
@@ -133,7 +133,7 @@ class FlTest extends TestCase
 
         $detail2001 = '<div id="projectp2001">'.str_repeat('Полное техническое задание на разработку нестандартного модуля обмена 1С:УТ и коробочного Битрикс24 с очередями и обработкой конфликтов ИНН. ', 3).'</div>';
 
-        $mock = $this->createMock(Fl::class);
+        $mock = $this->createMock(FlClient::class);
         $mock->method('getProjects')->willReturnOnConsecutiveCalls(
             null,
             null
@@ -145,7 +145,7 @@ class FlTest extends TestCase
         $mock->method('getKeywords')->willReturn(['битрикс', 'laravel', 'php']);
         $mock->method('getProject')->willReturn(new Response(200, [], $detail2001));
 
-        $this->container->add(Fl::class, $mock);
+        $this->container->add(FlClient::class, $mock);
 
         $tool = $this->container->get(CheckNewOrdersTool::class);
         $ok = json_decode($tool->checkNewOrders(), true);

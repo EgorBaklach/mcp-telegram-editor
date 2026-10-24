@@ -2,7 +2,7 @@
 
 use Psr\Http\Message\ResponseInterface;
 
-class Telegram extends AbstractClient
+class TelegramClient extends AbstractClient
 {
     public function sendMessage(string $text): ResponseInterface
     {

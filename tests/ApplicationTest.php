@@ -48,7 +48,7 @@ class ApplicationTest extends TestCase
         $this->assertTrue($monitor::hasMacro('hasOption'));
     }
 
-    #[TestDox('ProviderAggregate выбрасывает ContainerException при попытке регистрации неизвестного сервиса')]
+    #[TestDox('AggregateProvider выбрасывает ContainerException при попытке регистрации неизвестного сервиса')]
     public function testProviderAggregateThrowsOnUnknownService(): void
     {
         $providers = require __DIR__.'/../config/providers.php';

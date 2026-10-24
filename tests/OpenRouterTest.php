@@ -6,7 +6,7 @@ use GuzzleHttp\Psr7\Response;
 use Illuminate\Database\Capsule\Manager as Capsule;
 use InvalidArgumentException;
 use League\Container\DefinitionContainerInterface;
-use Magistrale\Clients\OpenRouter;
+use Magistrale\Clients\OpenRouterClient;
 use Magistrale\Dispatchers\Source\OpenRouterDispatcher;
 use PHPUnit\Framework\Attributes\TestDox;
 use Psr\Http\Message\ResponseInterface;
@@ -74,9 +74,9 @@ class OpenRouterTest extends TestCase
             ],
         ]);
 
-        $mock = $this->createMock(OpenRouter::class);
+        $mock = $this->createMock(OpenRouterClient::class);
         $mock->method('getModels')->willReturn(new Response(200, [], $payload));
-        $this->container->add(OpenRouter::class, $mock);
+        $this->container->add(OpenRouterClient::class, $mock);
 
         $dispatcher = $this->container->get(OpenRouterDispatcher::class);
         $this->assertTrue($dispatcher->dispatch());
@@ -99,7 +99,7 @@ class OpenRouterTest extends TestCase
     #[TestDox('CheckNewModelsTool и MarkPublishedTool: обрабатывают успешный синк, ошибки HTTP/исключения и пометку модели как опубликованной')]
     public function testCheckNewModelsAndMarkPublishedTools(): void
     {
-        $mock = $this->createMock(OpenRouter::class);
+        $mock = $this->createMock(OpenRouterClient::class);
         $mock->expects($this->exactly(2))
             ->method('getModels')
             ->willReturnOnConsecutiveCalls(
@@ -113,7 +113,7 @@ class OpenRouterTest extends TestCase
                 null
             );
 
-        $this->container->add(OpenRouter::class, $mock);
+        $this->container->add(OpenRouterClient::class, $mock);
 
         $checkTool = $this->container->get(CheckNewModelsTool::class);
         $okJson = json_decode($checkTool->checkNewModels(), true);
@@ -142,7 +142,7 @@ class OpenRouterTest extends TestCase
         ];
 
         $calls = [];
-        $client = new class($config, $calls) extends OpenRouter
+        $client = new class($config, $calls) extends OpenRouterClient
         {
             public function __construct(array $config, private array &$calls)
             {

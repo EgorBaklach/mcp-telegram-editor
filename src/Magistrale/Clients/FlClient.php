@@ -2,7 +2,7 @@
 
 use Psr\Http\Message\ResponseInterface;
 
-class Fl extends AbstractClient
+class FlClient extends AbstractClient
 {
     public function getProjects(): ?ResponseInterface
     {

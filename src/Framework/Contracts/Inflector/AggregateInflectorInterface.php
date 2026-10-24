@@ -2,7 +2,7 @@
 
 use League\Container\Inflector\InflectorAggregateInterface as InflectorAggregateInterfaceLeague;
 
-interface InflectorAggregateInterface extends InflectorAggregateInterfaceLeague
+interface AggregateInflectorInterface extends InflectorAggregateInterfaceLeague
 {
     public function resolve(string $type, mixed $inflector): object;
 }

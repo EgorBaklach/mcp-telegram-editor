@@ -6,7 +6,7 @@ use App\Tools\Telegram\{DeleteByTextTool, DeleteTool, EditTool, PublishTool, Sea
 use GuzzleHttp\Psr7\Response;
 use Illuminate\Database\Capsule\Manager as Capsule;
 use InvalidArgumentException;
-use Magistrale\Clients\Telegram;
+use Magistrale\Clients\TelegramClient;
 use Magistrale\Dispatchers\Telegram\{DeleteByTextDispatcher, DeleteDispatcher, EditDispatcher, PublishDispatcher, SearchPostsDispatcher};
 use PHPUnit\Framework\Attributes\TestDox;
 use RuntimeException;
@@ -37,7 +37,7 @@ class TelegramTest extends TestCase
     #[TestDox('PublishDispatcher и PublishTool: публикуют пост в Telegram, декодируют message_id через TelegramMixin и сохраняют в БД')]
     public function testPublishLifecycleAndErrorHandling(): void
     {
-        $mock = $this->createMock(Telegram::class);
+        $mock = $this->createMock(TelegramClient::class);
         $mock->expects($this->exactly(2))
             ->method('sendMessage')
             ->willReturnOnConsecutiveCalls(
@@ -45,7 +45,7 @@ class TelegramTest extends TestCase
                 new Response(500, [], 'Internal Server Error')
             );
 
-        $this->container->add(Telegram::class, $mock);
+        $this->container->add(TelegramClient::class, $mock);
         $tool = $this->container->get(PublishTool::class);
 
         $this->assertSame('success', $tool->publish('<b>Strong Elephant</b>'));
@@ -57,7 +57,7 @@ class TelegramTest extends TestCase
     #[TestDox('EditDispatcher и EditTool: редактируют пост, создают или обновляют запись в БД через updateOrCreate и обрабатывают сбои')]
     public function testEditDispatcherUpdatesAndCreatesRecords(): void
     {
-        $mock = $this->createMock(Telegram::class);
+        $mock = $this->createMock(TelegramClient::class);
         $mock->expects($this->exactly(2))
             ->method('editMessage')
             ->willReturnCallback(function(array $payload): Response
@@ -67,7 +67,7 @@ class TelegramTest extends TestCase
                 return new Response(200, [], '{"ok":true}');
             });
 
-        $this->container->add(Telegram::class, $mock);
+        $this->container->add(TelegramClient::class, $mock);
         $tool = $this->container->get(EditTool::class);
 
         $this->assertSame('success', $tool->edit(900002, 'Updated text'));
@@ -82,13 +82,13 @@ class TelegramTest extends TestCase
         TelegramPost::create(['message_id' => 900010, 'text' => 'Post with 100% normal content']);
         TelegramPost::create(['message_id' => 900011, 'text' => 'Post with 100000 coins']);
 
-        $mock = $this->createMock(Telegram::class);
+        $mock = $this->createMock(TelegramClient::class);
         $mock->expects($this->once())
             ->method('deleteMessage')
             ->with(900010)
             ->willReturn(new Response(200, [], '{"ok":true}'));
 
-        $this->container->add(Telegram::class, $mock);
+        $this->container->add(TelegramClient::class, $mock);
 
         $deleteByText = $this->container->get(DeleteByTextDispatcher::class);
         $this->assertTrue($deleteByText->dispatch('100%'));

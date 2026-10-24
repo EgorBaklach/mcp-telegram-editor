@@ -1,7 +1,7 @@
 <?php namespace Magistrale\Dispatchers\Telegram;
 
 use Illuminate\Database\Capsule\Manager as Capsule;
-use Magistrale\Clients\Telegram as Client;
+use Magistrale\Clients\TelegramClient as Client;
 use Magistrale\Contracts\{DispatcherInterface, MacroableInterface};
 use Magistrale\Traits\MacroableTrait;
 use Psr\Http\Message\ResponseInterface;

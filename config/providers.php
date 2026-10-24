@@ -1,10 +1,10 @@
 <?php
 
 use Cli\Providers\ServiceProvider as CliServiceProvider;
-use Framework\Providers\{ProviderAggregate, ServiceProvider};
+use Framework\Providers\{AggregateProvider, ServiceProvider};
 use Magistrale\Providers\{CallbackProvider, ClientProvider, DatabaseServiceProvider, McpServiceProvider, RedisProvider};
 
-return new ProviderAggregate([
+return new AggregateProvider([
     CliServiceProvider::class,
     ServiceProvider::class,
     CallbackProvider::class,

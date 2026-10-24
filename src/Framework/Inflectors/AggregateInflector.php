@@ -1,11 +1,11 @@
 <?php namespace Framework\Inflectors;
 
-use Framework\Contracts\Inflector\InflectorAggregateInterface;
+use Framework\Contracts\Inflector\AggregateInflectorInterface;
 use League\Container\ContainerAwareTrait;
 use League\Container\Inflector\Inflector;
 use Traversable;
 
-class InflectorAggregate implements InflectorAggregateInterface
+class AggregateInflector implements AggregateInflectorInterface
 {
     use ContainerAwareTrait;
 
@@ -18,7 +18,7 @@ class InflectorAggregate implements InflectorAggregateInterface
 
     public function resolve(string $type, mixed $inflector): Inflector
     {
-        return new Inflector($type, $inflector instanceof InflectorAbstract ? $inflector : new $inflector($this));
+        return new Inflector($type, $inflector instanceof AbstractInflector ? $inflector : new $inflector($this));
     }
 
     public function add(string $type, ?callable $callback = null): Inflector

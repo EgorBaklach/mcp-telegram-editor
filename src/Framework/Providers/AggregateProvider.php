@@ -1,12 +1,12 @@
 <?php namespace Framework\Providers;
 
-use Framework\Contracts\Provider\{ProviderAggregateInterface, ProviderInterface};
+use Framework\Contracts\Provider\{AggregateProviderInterface, ProviderInterface};
 use League\Container\ContainerAwareTrait;
 use League\Container\Exception\ContainerException;
 use League\Container\ServiceProvider\{BootableServiceProviderInterface, ServiceProviderAggregateInterface};
 use Traversable;
 
-class ProviderAggregate implements ProviderAggregateInterface, ServiceProviderAggregateInterface
+class AggregateProvider implements AggregateProviderInterface, ServiceProviderAggregateInterface
 {
     use ContainerAwareTrait;
 
@@ -21,7 +21,7 @@ class ProviderAggregate implements ProviderAggregateInterface, ServiceProviderAg
 
     public function resolve(mixed $provider): ProviderInterface
     {
-        return $provider instanceof ProviderAbstract ? $provider : new $provider($this);
+        return $provider instanceof AbstractProvider ? $provider : new $provider($this);
     }
 
     public function add(mixed $provider): ServiceProviderAggregateInterface

@@ -1,9 +1,9 @@
 <?php
 
-use Magistrale\Clients\{Fl, OpenRouter, Telegram};
+use Magistrale\Clients\{FlClient, OpenRouterClient, TelegramClient};
 
 return [
-    Fl::class => [
+    FlClient::class => [
         'base_uri' => 'https://www.fl.ru/',
         'timeout' => 10.0,
         'cookies' => true,
@@ -43,12 +43,12 @@ return [
             'prof_not_clear' => false,
         ],
     ],
-    OpenRouter::class => [
+    OpenRouterClient::class => [
         'base_uri' => 'https://openrouter.ai/api/v1/',
         'nat64_ips' => array_values(array_filter(explode(',', getenv('OPENROUTER_NAT64_IPS') ?: ''))),
         'timeout' => 10.0,
     ],
-    Telegram::class => [
+    TelegramClient::class => [
         'base_uri' => 'https://api.telegram.org/bot'.getenv('TELEGRAM_BOT_TOKEN').'/',
         'chat_id' => getenv('TELEGRAM_CHAT_ID'),
         'proxy' => getenv('TELEGRAM_PROXY') ?: null,

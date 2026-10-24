@@ -1,10 +1,10 @@
 <?php namespace Magistrale\Providers;
 
 use Closure;
-use Framework\Providers\ProviderAbstract;
+use Framework\Providers\AbstractProvider;
 use Magistrale\Contracts\CallbackInterface;
 
-final class CallbackProvider extends ProviderAbstract
+final class CallbackProvider extends AbstractProvider
 {
     protected array $provides = [
         CallbackInterface::class

@@ -2,7 +2,7 @@
 
 use League\Container\{ContainerAwareInterface, DefinitionContainerInterface};
 
-interface ProviderAggregateInterface
+interface AggregateProviderInterface
 {
     public function resolve(mixed $provider): ProviderInterface;
     public function setContainer(DefinitionContainerInterface $container): ContainerAwareInterface;

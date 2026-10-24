@@ -3,7 +3,7 @@
 use Framework\Contracts\Router\RouterInterface;
 use Laminas\Stdlib\Glob;
 
-class RouteInflector extends InflectorAbstract
+class RouteInflector extends AbstractInflector
 {
     public function __invoke(RouterInterface $router): void
     {

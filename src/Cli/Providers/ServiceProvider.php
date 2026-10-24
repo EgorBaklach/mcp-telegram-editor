@@ -1,12 +1,12 @@
 <?php namespace Cli\Providers;
 
 use Framework\Contracts\Console\ConsoleInterface;
-use Framework\Providers\ProviderAbstract;
+use Framework\Providers\AbstractProvider;
 use League\Container\ServiceProvider\BootableServiceProviderInterface;
 use Magistrale\Contracts\ConsoleLoggerInterface;
 use Magistrale\Logging\ConsoleLogger;
 
-class ServiceProvider extends ProviderAbstract implements BootableServiceProviderInterface
+class ServiceProvider extends AbstractProvider implements BootableServiceProviderInterface
 {
     private array $dependencies = [];
 

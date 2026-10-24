@@ -1,14 +1,14 @@
 <?php namespace Framework\Providers;
 
-use Framework\Contracts\Provider\{ProviderAggregateInterface, ProviderInterface};
+use Framework\Contracts\Provider\{AggregateProviderInterface, ProviderInterface};
 use League\Container\DefinitionContainerInterface;
 use League\Container\ServiceProvider\AbstractServiceProvider;
 
-abstract class ProviderAbstract extends AbstractServiceProvider implements ProviderInterface
+abstract class AbstractProvider extends AbstractServiceProvider implements ProviderInterface
 {
     protected array $provides = [];
 
-    public function __construct(private readonly ProviderAggregateInterface $aggregate){}
+    public function __construct(private readonly AggregateProviderInterface $aggregate){}
 
     public function container(): ?DefinitionContainerInterface
     {

@@ -7,7 +7,7 @@ use League\Container\ServiceProvider\BootableServiceProviderInterface;
 use League\Route\Strategy\StrategyInterface;
 use Psr\Http\Message\ResponseFactoryInterface;
 
-class ServiceProvider extends ProviderAbstract implements BootableServiceProviderInterface
+class ServiceProvider extends AbstractProvider implements BootableServiceProviderInterface
 {
     private array $dependencies = [];
 

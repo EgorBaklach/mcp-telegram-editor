@@ -1,6 +1,6 @@
 <?php namespace Magistrale\Providers;
 
-use Framework\Providers\ProviderAbstract;
+use Framework\Providers\AbstractProvider;
 use Magistrale\Logging\StderrLogger;
 use Mcp\Server;
 use Mcp\Server\Builder;
@@ -11,7 +11,7 @@ use Laminas\Diactoros\StreamFactory;
 use League\Container\DefinitionContainerInterface;
 use League\Container\ServiceProvider\BootableServiceProviderInterface;
 
-final class McpServiceProvider extends ProviderAbstract implements BootableServiceProviderInterface
+final class McpServiceProvider extends AbstractProvider implements BootableServiceProviderInterface
 {
     private array $settings;
 

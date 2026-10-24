@@ -1,10 +1,10 @@
 <?php namespace Magistrale\Providers;
 
-use Framework\Providers\ProviderAbstract;
+use Framework\Providers\AbstractProvider;
 use Illuminate\Database\Capsule\Manager as Capsule;
 use League\Container\ServiceProvider\BootableServiceProviderInterface;
 
-final class DatabaseServiceProvider extends ProviderAbstract implements BootableServiceProviderInterface
+final class DatabaseServiceProvider extends AbstractProvider implements BootableServiceProviderInterface
 {
     private array $database = [];
 

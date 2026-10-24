@@ -1,12 +1,13 @@
 <?php namespace Magistrale\Providers;
 
-use Framework\Providers\ProviderAbstract;
+use Framework\Providers\AbstractProvider;
 use Magistrale\Contracts\RedisInterface;
+use Magistrale\Mixins\RedisMixin;
 use Magistrale\Traits\MacroableTrait;
 use RuntimeException;
 use Throwable;
 
-final class RedisProvider extends ProviderAbstract
+final class RedisProvider extends AbstractProvider
 {
     protected array $provides = [
         RedisInterface::class,
@@ -14,11 +15,14 @@ final class RedisProvider extends ProviderAbstract
 
     public function register(): void
     {
-        $this->container()->add(RedisInterface::class)->addArgument('redis')->setConcrete(fn(...$values) => new class(...$values) implements RedisInterface
+        $this->container()->add(RedisInterface::class)->addArguments(['redis', RedisMixin::class])->setConcrete(fn(...$values) => new class(...$values) implements RedisInterface
         {
             use MacroableTrait;
 
-            public function __construct(private readonly array $configs = []) {}
+            public function __construct(private readonly array $configs, object $mixin)
+            {
+                self::mixin($mixin);
+            }
 
             public function isLocked(string $key, ?int $ttl = null): bool
             {

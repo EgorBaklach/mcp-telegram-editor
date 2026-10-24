@@ -2,7 +2,7 @@
 
 use Psr\Http\Message\ResponseInterface;
 
-class OpenRouter extends AbstractClient
+class OpenRouterClient extends AbstractClient
 {
     public function getModels(): ?ResponseInterface
     {

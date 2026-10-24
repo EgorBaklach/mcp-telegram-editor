@@ -1,6 +1,6 @@
 <?php namespace Magistrale\Contracts;
 
-interface RedisInterface extends MacroableInterface
+interface RedisInterface
 {
     public function isLocked(string $key, ?int $ttl = null): bool;
 
