@@ -1,4 +1,4 @@
-<?php namespace Magistrale\Agents;
+<?php namespace Magistrale\Contracts;
 
 interface AgentInterface
 {

@@ -1,6 +1,9 @@
 <?php
 
-use App\Tools\{CheckNewModelsTool, DeleteByTextTool, DeleteTool, EditTool, MarkPublishedTool, PingTool, PublishTool, SearchPostsTool};
+use App\Tools\Fl\CheckNewOrdersTool;
+use App\Tools\Mcp\PingTool;
+use App\Tools\OpenRouter\{CheckNewModelsTool, MarkPublishedTool};
+use App\Tools\Telegram\{DeleteByTextTool, DeleteTool, EditTool, PublishTool, SearchPostsTool};
 
 return [
     'server_name' => 'mcp-telegram-editor',
@@ -18,5 +21,6 @@ return [
         ['handler' => [SearchPostsTool::class, 'search'], 'name' => 'search_posts', 'description' => 'Searches published Telegram channel posts in DB by keyword/substring and returns their message IDs and text'],
         ['handler' => [CheckNewModelsTool::class, 'checkNewModels'], 'name' => 'check_new_models', 'description' => 'Syncs free OpenRouter models with DB and returns JSON with newly discovered models'],
         ['handler' => [MarkPublishedTool::class, 'markPublished'], 'name' => 'mark_published', 'description' => 'Marks an OpenRouter model as published in DB by its model_id after agent publishes the post'],
+        ['handler' => [CheckNewOrdersTool::class, 'checkNewOrders'], 'name' => 'check_new_orders', 'description' => 'Syncs FL.ru orders with DB, filters out small tasks, and returns JSON with pending orders (published is null)'],
     ],
 ];

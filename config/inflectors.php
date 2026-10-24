@@ -2,10 +2,13 @@
 
 use Framework\Contracts\Router\RouterInterface;
 use Framework\Inflectors\{InflectorAggregate, RouteInflector};
-use Magistrale\Inflectors\MixinInflector;
-use Magistrale\Mixins\MacroableInterface;
+use Magistrale\Contracts\{MacroableInterface, OperableInterface};
+use Magistrale\Dispatchers\Source\AbstractDispatcher;
+use Magistrale\Inflectors\{CallbackInflector, MixinInflector, SourceInflector};
 
 return new InflectorAggregate([
     RouterInterface::class => RouteInflector::class,
     MacroableInterface::class => MixinInflector::class,
+    AbstractDispatcher::class => SourceInflector::class,
+    OperableInterface::class => CallbackInflector::class,
 ]);

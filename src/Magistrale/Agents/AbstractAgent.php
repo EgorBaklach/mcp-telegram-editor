@@ -1,6 +1,7 @@
 <?php namespace Magistrale\Agents;
 
 use League\Container\DefinitionContainerInterface;
+use Magistrale\Contracts\AgentInterface;
 use Symfony\Component\Filesystem\Filesystem;
 
 abstract class AbstractAgent implements AgentInterface

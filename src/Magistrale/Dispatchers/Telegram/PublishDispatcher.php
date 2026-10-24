@@ -8,9 +8,9 @@ class PublishDispatcher extends AbstractDispatcher
 
     public function dispatch(mixed $payload = null): bool
     {
-        if(!parent::dispatch($payload)) return false; $data = $this->decodeResponse();
+        if(!parent::dispatch($payload)) return false;
 
-        if(isset($data['ok'], $data['result']['message_id'])) TelegramPost::create(['message_id' => $data['result']['message_id'], 'text' => (string) $payload]);
+        if($messageId = $this->extractMessageId()) TelegramPost::create(['message_id' => $messageId, 'text' => (string) $payload]);
 
         return true;
     }

@@ -1,4 +1,4 @@
-<?php namespace App\Tools;
+<?php namespace App\Tools\Telegram;
 
 use InvalidArgumentException;
 use Magistrale\Dispatchers\Telegram\EditDispatcher;

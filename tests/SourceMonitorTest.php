@@ -3,7 +3,7 @@
 use Cli\Commands\SourceMonitorCommand;
 use League\Container\DefinitionContainerInterface;
 use Magistrale\Agents\{AgyAgent, HermesAgent};
-use Magistrale\Clients\Redis;
+use Magistrale\Contracts\RedisInterface;
 use Magistrale\Dispatchers\SourceMonitor\OpenRouterDispatcher;
 use Magistrale\Logging\ConsoleLogger;
 use PHPUnit\Framework\Attributes\TestDox;
@@ -15,7 +15,7 @@ use Symfony\Component\Process\Process;
 
 class SourceMonitorTest extends TestCase
 {
-    private Redis $redis;
+    private RedisInterface $redis;
 
     private Filesystem $fs;
 
@@ -25,7 +25,7 @@ class SourceMonitorTest extends TestCase
     {
         $this->bootContainer();
 
-        $this->redis = $this->container->get(Redis::class);
+        $this->redis = $this->container->get(RedisInterface::class);
         $this->fs = $this->container->get(Filesystem::class);
         $this->redis->releaseLock('lock:source:openrouter');
         $this->redis->releaseLock('lock:source:test');

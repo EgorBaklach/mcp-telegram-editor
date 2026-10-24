@@ -1,4 +1,4 @@
-<?php namespace Magistrale\Logging;
+<?php namespace Magistrale\Contracts;
 
 use Symfony\Component\Console\Output\OutputInterface;
 

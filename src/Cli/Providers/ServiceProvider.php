@@ -3,7 +3,8 @@
 use Framework\Contracts\Console\ConsoleInterface;
 use Framework\Providers\ProviderAbstract;
 use League\Container\ServiceProvider\BootableServiceProviderInterface;
-use Magistrale\Logging\{ConsoleLogger, ConsoleLoggerInterface};
+use Magistrale\Contracts\ConsoleLoggerInterface;
+use Magistrale\Logging\ConsoleLogger;
 
 class ServiceProvider extends ProviderAbstract implements BootableServiceProviderInterface
 {

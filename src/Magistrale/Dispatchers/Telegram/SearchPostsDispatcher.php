@@ -1,7 +1,7 @@
 <?php namespace Magistrale\Dispatchers\Telegram;
 
-use Magistrale\Dispatchers\ResultInterface;
 use App\Models\TelegramPost;
+use Magistrale\Contracts\ResultInterface;
 
 class SearchPostsDispatcher extends AbstractDispatcher implements ResultInterface
 {

@@ -1,18 +1,9 @@
 <?php namespace Magistrale\Clients;
 
-use GuzzleHttp\Client;
-use League\Container\DefinitionContainerInterface;
 use Psr\Http\Message\ResponseInterface;
 
-class Telegram extends Client
+class Telegram extends AbstractClient
 {
-    private array $config;
-
-    public function __construct(private DefinitionContainerInterface $container)
-    {
-        $this->config = $this->container->get('telegram'); parent::__construct($this->config);
-    }
-
     public function sendMessage(string $text): ResponseInterface
     {
         return $this->post('sendRichMessage', [

@@ -1,52 +1,23 @@
 <?php namespace Magistrale\Dispatchers\Migration;
 
 use App\Models\Migration;
-use Throwable;
 
 class DownDispatcher extends AbstractDispatcher
 {
-    protected const method = 'down';
-
     public function dispatch(mixed $payload = null): bool
     {
-        if(!$migrations = $this->getMigrationsToRollback($payload)) return $this->command->logger->info('Не найдено миграций для отката.');
-
-        foreach($migrations as $row) if(!$this->rollbackMigration($row)) return false;
-
-        return $this->command->logger->info('Откат миграций успешно завершен!');
-    }
-
-    private function getMigrationsToRollback(string|int|null $target): array
-    {
-        $query = Migration::query()->orderByDesc('id');
-
-        return match(true)
+        if(!$migrations = $this->callback->migrate('rollback', $payload)(Migration::query()->orderByDesc('id')))
         {
-            $target === null => $query->where('batch', Migration::query()->max('batch'))->get()->all() ?: [],
-            $target === 'all' => $query->get()->all(),
-            ctype_digit((string) $target) => $query->where('id', (int) $target)->get()->all(),
-            default => []
-        };
-    }
-
-    private function rollbackMigration(object $row): bool
-    {
-        $this->command->logger->comment("Откат миграции {$row->migration} (ID: {$row->id})... ");
-
-        if(!file_exists($row->migration))
-        {
-            return $this->command->logger->error("Файл миграции {$row->migration} не найден. Отмена операции.");
+            $this->command->logger->info('Не найдено миграций для отката.'); return true;
         }
 
-        try
+        foreach($migrations as $row)
         {
-            $this->runMigration($row->migration); Migration::query()->where('id', $row->id)->delete();
+            $this->command->logger->comment("Откат миграции {$row->migration} (ID: {$row->id})... ");
 
-            return $this->command->logger->info("Миграция {$row->migration} успешно откачена.");
+            if($this->callback->migrate('resolve', 'down', $row->migration)) Migration::query()->where('id', $row->id)->delete(); else return false;
         }
-        catch(Throwable $e)
-        {
-            return $this->command->logger->error("Ошибка при откате миграции {$row->migration}: {$e->getMessage()}");
-        }
+
+        $this->command->logger->info('Откат миграций успешно завершен!'); return true;
     }
 }

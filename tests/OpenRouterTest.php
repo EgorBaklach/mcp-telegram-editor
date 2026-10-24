@@ -1,13 +1,13 @@
 <?php namespace Tests;
 
 use App\Models\OpenRouterModel;
-use App\Tools\{CheckNewModelsTool, MarkPublishedTool};
+use App\Tools\OpenRouter\{CheckNewModelsTool, MarkPublishedTool};
 use GuzzleHttp\Psr7\Response;
 use Illuminate\Database\Capsule\Manager as Capsule;
 use InvalidArgumentException;
 use League\Container\DefinitionContainerInterface;
 use Magistrale\Clients\OpenRouter;
-use Magistrale\Dispatchers\OpenRouter\SyncDispatcher;
+use Magistrale\Dispatchers\Source\OpenRouterDispatcher;
 use PHPUnit\Framework\Attributes\TestDox;
 use Psr\Http\Message\ResponseInterface;
 use RuntimeException;
@@ -78,7 +78,7 @@ class OpenRouterTest extends TestCase
         $mock->method('getModels')->willReturn(new Response(200, [], $payload));
         $this->container->add(OpenRouter::class, $mock);
 
-        $dispatcher = $this->container->get(SyncDispatcher::class);
+        $dispatcher = $this->container->get(OpenRouterDispatcher::class);
         $this->assertTrue($dispatcher->dispatch());
 
         $results = $dispatcher->getResults();
@@ -110,7 +110,7 @@ class OpenRouterTest extends TestCase
                         'pricing' => ['prompt' => '0', 'completion' => '0'],
                     ]],
                 ])),
-                new Response(502, [], 'Bad Gateway')
+                null
             );
 
         $this->container->add(OpenRouter::class, $mock);
@@ -135,25 +135,25 @@ class OpenRouterTest extends TestCase
     #[TestDox('OpenRouter Client: переключается на резервный шлюз NAT64 при сбое первого и откатывается на прямой запрос, если все шлюзы недоступны')]
     public function testOpenRouterClientNat64FailoverAndDirectFallback(): void
     {
-        $this->container->extend('openrouter')->setConcrete([
+        $config = [
             'base_uri' => 'https://openrouter.ai/api/v1/',
             'nat64_ips' => ['2a01:4f8:c2c:123f:64::1', '2a00:1098:2b::1'],
             'timeout' => 2.0,
-        ]);
+        ];
 
         $calls = [];
-        $client = new class($this->container, $calls) extends OpenRouter
+        $client = new class($config, $calls) extends OpenRouter
         {
-            public function __construct(DefinitionContainerInterface $container, private array &$calls)
+            public function __construct(array $config, private array &$calls)
             {
-                parent::__construct($container);
+                parent::__construct($config);
             }
 
             public function get($uri, array $options = []): ResponseInterface
             {
                 $this->calls[] = $options['curl'][CURLOPT_RESOLVE][0] ?? 'direct';
 
-                if(count($this->calls) === 1) throw new RuntimeException('First NAT64 timed out');
+                if(count($this->calls) === 1) return new Response(502);
 
                 return new Response(200, [], '{"data":[]}');
             }

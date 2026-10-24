@@ -1,24 +1,21 @@
-<?php namespace Magistrale\Dispatchers\OpenRouter;
+<?php namespace Magistrale\Dispatchers\Source;
 
-use Magistrale\Dispatchers\ResultInterface;
 use App\Models\OpenRouterModel;
 use Throwable;
 
-class SyncDispatcher extends AbstractDispatcher implements ResultInterface
+class OpenRouterDispatcher extends AbstractDispatcher
 {
-    private array $results = [];
-
     public function dispatch(mixed $payload = null): bool
     {
         $this->results = [];
 
         try
         {
-            $response = $this->client->getModels(); if($response->getStatusCode() !== 200) return false;
+            if(!$models = $this->callback->fetch('models')) return false;
 
             $existing = OpenRouterModel::query()->select(['model_id', 'released_at'])->pluck('released_at', 'model_id')->all();
 
-            foreach($this->decodeModels($response) as $model)
+            foreach($models as $model)
             {
                 if(!$this->isFreeModel($model) || $this->isExisting($model, $existing, $released_at = $this->formatReleasedAt($model))) continue;
 
@@ -52,10 +49,5 @@ class SyncDispatcher extends AbstractDispatcher implements ResultInterface
         }
 
         return false;
-    }
-
-    public function getResults(): array
-    {
-        return $this->results;
     }
 }

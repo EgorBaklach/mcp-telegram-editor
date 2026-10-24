@@ -70,9 +70,6 @@ class DatabaseMigrationTest extends TestCase
         $this->assertFalse($dispatcher->dispatch(null));
         $this->assertFalse($dispatcher->dispatch(''));
 
-        $formatted = $dispatcher->formatMigrationName('CreateSampleItemsTable');
-        $this->assertMatchesRegularExpression('/^\d{4}_\d{2}_\d{2}_\d{6}_create_sample_items_table\.php$/', $formatted);
-
         $before = glob('database/migrations/*_create_temp_audit_table.php') ?: [];
         $this->assertTrue($dispatcher->dispatch('CreateTempAuditTable'));
         $after = array_diff(glob('database/migrations/*_create_temp_audit_table.php') ?: [], $before);

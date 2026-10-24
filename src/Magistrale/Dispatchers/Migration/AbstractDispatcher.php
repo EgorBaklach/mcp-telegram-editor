@@ -3,19 +3,17 @@
 use Cli\Commands\MigrateCommand;
 use Illuminate\Database\Capsule\Manager as Capsule;
 use Illuminate\Database\Schema\Blueprint;
-use Illuminate\Support\Traits\Macroable;
-use Magistrale\Dispatchers\DispatcherInterface;
-use Magistrale\Mixins\MacroableInterface;
+use Magistrale\Contracts\{DispatcherInterface, OperableInterface};
+use Magistrale\Traits\OperableTrait;
+use Symfony\Component\Filesystem\Filesystem;
 
-abstract class AbstractDispatcher implements DispatcherInterface, MacroableInterface
+abstract class AbstractDispatcher implements DispatcherInterface, OperableInterface
 {
-    use Macroable;
+    use OperableTrait;
 
-    protected MigrateCommand $command;
+    public MigrateCommand $command;
 
-    protected const method = '';
-
-    public function __construct(protected readonly Capsule $capsule) {}
+    public function __construct(protected readonly Capsule $capsule, protected readonly Filesystem $fs) {}
 
     public function build(MigrateCommand $command): self
     {

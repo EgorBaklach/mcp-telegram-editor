@@ -1,10 +1,9 @@
 <?php namespace Magistrale\Dispatchers\Telegram;
 
 use Illuminate\Database\Capsule\Manager as Capsule;
-use Illuminate\Support\Traits\Macroable;
-use Magistrale\Dispatchers\DispatcherInterface;
 use Magistrale\Clients\Telegram as Client;
-use Magistrale\Mixins\MacroableInterface;
+use Magistrale\Contracts\{DispatcherInterface, MacroableInterface};
+use Magistrale\Traits\MacroableTrait;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Log\LoggerInterface;
 use RuntimeException;
@@ -12,7 +11,7 @@ use Throwable;
 
 abstract class AbstractDispatcher implements DispatcherInterface, MacroableInterface
 {
-    use Macroable;
+    use MacroableTrait;
 
     protected ?ResponseInterface $response = null;
 

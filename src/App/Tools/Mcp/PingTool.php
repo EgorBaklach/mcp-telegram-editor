@@ -1,4 +1,4 @@
-<?php namespace App\Tools;
+<?php namespace App\Tools\Mcp;
 
 final class PingTool
 {

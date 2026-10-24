@@ -1,5 +1,6 @@
 <?php namespace Magistrale\Logging;
 
+use Magistrale\Contracts\ConsoleLoggerInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 
 class ConsoleLogger implements ConsoleLoggerInterface

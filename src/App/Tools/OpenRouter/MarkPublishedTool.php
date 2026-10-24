@@ -1,4 +1,4 @@
-<?php namespace App\Tools;
+<?php namespace App\Tools\OpenRouter;
 
 use App\Models\OpenRouterModel;
 use Illuminate\Database\Capsule\Manager as Capsule;

@@ -1,7 +1,8 @@
 <?php namespace Tests;
 
 use App\Models\TelegramPost;
-use App\Tools\{DeleteByTextTool, DeleteTool, EditTool, PingTool, PublishTool, SearchPostsTool};
+use App\Tools\Mcp\PingTool;
+use App\Tools\Telegram\{DeleteByTextTool, DeleteTool, EditTool, PublishTool, SearchPostsTool};
 use GuzzleHttp\Psr7\Response;
 use Illuminate\Database\Capsule\Manager as Capsule;
 use InvalidArgumentException;

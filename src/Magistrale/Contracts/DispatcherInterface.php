@@ -1,4 +1,4 @@
-<?php namespace Magistrale\Dispatchers;
+<?php namespace Magistrale\Contracts;
 
 interface DispatcherInterface
 {

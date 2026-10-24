@@ -20,4 +20,12 @@ class TelegramMixin
             /** @var AbstractDispatcher $this */ return json_decode((string) $this->response?->getBody(), true, 512, JSON_BIGINT_AS_STRING) ?: [];
         };
     }
+
+    public function extractMessageId(): Closure
+    {
+        return function(): ?int
+        {
+            /** @var AbstractDispatcher $this */ $data = $this->decodeResponse(); return isset($data['ok'], $data['result']['message_id']) ? (int) $data['result']['message_id'] : null;
+        };
+    }
 }

@@ -1,9 +1,7 @@
 <?php namespace Magistrale\Dispatchers\SourceMonitor;
 
 use Cli\Commands\SourceMonitorCommand;
-use Magistrale\Agents\AgentInterface;
-use Magistrale\Clients\Redis;
-use Magistrale\Dispatchers\DispatcherInterface;
+use Magistrale\Contracts\{AgentInterface, DispatcherInterface, RedisInterface};
 use Throwable;
 
 abstract class AbstractDispatcher implements DispatcherInterface
@@ -14,7 +12,7 @@ abstract class AbstractDispatcher implements DispatcherInterface
 
     protected const lockKey = '';
 
-    public function __construct(protected readonly Redis $redis) {}
+    public function __construct(protected readonly RedisInterface $redis) {}
 
     public function build(SourceMonitorCommand $command): self
     {
