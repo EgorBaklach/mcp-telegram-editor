@@ -1,13 +1,13 @@
 <?php namespace Tests;
 
+use App\Clients\OpenRouterClient;
+use App\Dispatchers\Source\OpenRouterDispatcher;
 use App\Models\OpenRouterModel;
 use App\Tools\OpenRouter\{CheckNewModelsTool, MarkPublishedTool};
 use GuzzleHttp\Psr7\Response;
 use Illuminate\Database\Capsule\Manager as Capsule;
 use InvalidArgumentException;
 use League\Container\DefinitionContainerInterface;
-use Magistrale\Clients\OpenRouterClient;
-use Magistrale\Dispatchers\Source\OpenRouterDispatcher;
 use PHPUnit\Framework\Attributes\TestDox;
 use Psr\Http\Message\ResponseInterface;
 use RuntimeException;

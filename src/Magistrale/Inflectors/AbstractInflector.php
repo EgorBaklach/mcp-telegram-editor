@@ -1,7 +1,7 @@
 <?php namespace Magistrale\Inflectors;
 
+use App\Clients\AbstractClient;
 use Framework\Inflectors\AbstractInflector as BaseInflector;
-use Magistrale\Clients\AbstractClient;
 
 /**
  * @method object|null mixins(object $object)

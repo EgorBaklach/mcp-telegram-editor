@@ -1,6 +1,6 @@
 <?php namespace App\Tools\OpenRouter;
 
-use Magistrale\Dispatchers\Source\OpenRouterDispatcher;
+use App\Dispatchers\Source\OpenRouterDispatcher;
 
 final class CheckNewModelsTool
 {

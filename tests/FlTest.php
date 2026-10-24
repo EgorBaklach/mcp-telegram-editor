@@ -1,11 +1,11 @@
 <?php namespace Tests;
 
+use App\Clients\FlClient;
+use App\Dispatchers\Source\FlDispatcher;
 use App\Models\FlOrder;
 use App\Tools\Fl\CheckNewOrdersTool;
 use GuzzleHttp\Psr7\Response;
 use Illuminate\Database\Capsule\Manager as Capsule;
-use Magistrale\Clients\FlClient;
-use Magistrale\Dispatchers\Source\FlDispatcher;
 use PHPUnit\Framework\Attributes\TestDox;
 
 class FlTest extends TestCase

@@ -1,7 +1,7 @@
-<?php namespace Magistrale\Mixins;
+<?php namespace App\Mixins;
 
+use App\Dispatchers\Telegram\AbstractDispatcher;
 use Closure;
-use Magistrale\Dispatchers\Telegram\AbstractDispatcher;
 
 class TelegramMixin
 {

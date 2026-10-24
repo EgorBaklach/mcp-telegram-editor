@@ -1,7 +1,7 @@
-<?php namespace Magistrale\Dispatchers\Source;
+<?php namespace App\Dispatchers\Source;
 
+use App\Clients\AbstractClient as Client;
 use Illuminate\Database\Capsule\Manager as Capsule;
-use Magistrale\Clients\AbstractClient as Client;
 use Magistrale\Contracts\{DispatcherInterface, MacroableInterface, OperableInterface, ResultInterface};
 use Magistrale\Traits\{MacroableTrait, OperableTrait};
 use Psr\Log\LoggerInterface;

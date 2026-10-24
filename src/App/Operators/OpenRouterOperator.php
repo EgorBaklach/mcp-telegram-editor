@@ -1,6 +1,7 @@
-<?php namespace Magistrale\Operators;
+<?php namespace App\Operators;
 
-use Magistrale\Dispatchers\Source\OpenRouterDispatcher;
+use App\Dispatchers\Source\OpenRouterDispatcher;
+use Magistrale\Operators\AbstractOperator;
 
 class OpenRouterOperator extends AbstractOperator
 {

@@ -1,9 +1,10 @@
 <?php
 
+use App\Dispatchers\Source\{FlDispatcher, OpenRouterDispatcher};
+use App\Dispatchers\Telegram\{AbstractDispatcher as TelegramDispatcher, DeleteDispatcher};
+use App\Mixins\{FlMixin, OpenRouterMixin, TelegramMixin};
 use Cli\Commands\AbstractCommand;
-use Magistrale\Dispatchers\Source\{FlDispatcher, OpenRouterDispatcher};
-use Magistrale\Dispatchers\Telegram\{AbstractDispatcher as TelegramDispatcher, DeleteDispatcher};
-use Magistrale\Mixins\{CommandMixin, FlMixin, OpenRouterMixin, TelegramMixin};
+use Magistrale\Mixins\CommandMixin;
 
 return [
     AbstractCommand::class => CommandMixin::class,

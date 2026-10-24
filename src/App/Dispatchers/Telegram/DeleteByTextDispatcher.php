@@ -1,4 +1,4 @@
-<?php namespace Magistrale\Dispatchers\Telegram;
+<?php namespace App\Dispatchers\Telegram;
 
 use App\Models\TelegramPost;
 

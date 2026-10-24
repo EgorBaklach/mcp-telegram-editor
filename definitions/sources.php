@@ -1,7 +1,7 @@
 <?php
 
-use Magistrale\Clients\{FlClient, OpenRouterClient};
-use Magistrale\Dispatchers\Source\{FlDispatcher, OpenRouterDispatcher};
+use App\Clients\{FlClient, OpenRouterClient};
+use App\Dispatchers\Source\{FlDispatcher, OpenRouterDispatcher};
 
 return [
     OpenRouterDispatcher::class => OpenRouterClient::class,

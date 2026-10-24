@@ -1,7 +1,7 @@
-<?php namespace Magistrale\Mixins;
+<?php namespace App\Mixins;
 
+use App\Dispatchers\Source\FlDispatcher;
 use Closure;
-use Magistrale\Dispatchers\Source\FlDispatcher;
 use Psr\Http\Message\ResponseInterface;
 use SimpleXMLElement;
 

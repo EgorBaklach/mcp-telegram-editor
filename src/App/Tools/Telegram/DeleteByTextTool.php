@@ -1,7 +1,7 @@
 <?php namespace App\Tools\Telegram;
 
 use InvalidArgumentException;
-use Magistrale\Dispatchers\Telegram\DeleteByTextDispatcher;
+use App\Dispatchers\Telegram\DeleteByTextDispatcher;
 
 final class DeleteByTextTool
 {

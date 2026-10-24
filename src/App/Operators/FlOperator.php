@@ -1,6 +1,7 @@
-<?php namespace Magistrale\Operators;
+<?php namespace App\Operators;
 
-use Magistrale\Dispatchers\Source\FlDispatcher;
+use App\Dispatchers\Source\FlDispatcher;
+use Magistrale\Operators\AbstractOperator;
 
 class FlOperator extends AbstractOperator
 {

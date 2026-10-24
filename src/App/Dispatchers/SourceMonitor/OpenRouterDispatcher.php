@@ -1,4 +1,4 @@
-<?php namespace Magistrale\Dispatchers\SourceMonitor;
+<?php namespace App\Dispatchers\SourceMonitor;
 
 class OpenRouterDispatcher extends AbstractDispatcher
 {

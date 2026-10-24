@@ -8,7 +8,11 @@ class CallbackInflector extends AbstractInflector
     {
         if($operator = $this->operators($object))
         {
-            $callback = clone $this->container()->get(CallbackInterface::class); $callback->container = $operator($object); $object->setCallback($callback);
+            $callback = clone $this->container()->get(CallbackInterface::class);
+
+            $callback->container = $operator($object);
+
+            $object->setCallback($callback);
         }
     }
 }

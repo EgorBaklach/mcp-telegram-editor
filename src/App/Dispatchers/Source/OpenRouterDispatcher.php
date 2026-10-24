@@ -1,4 +1,4 @@
-<?php namespace Magistrale\Dispatchers\Source;
+<?php namespace App\Dispatchers\Source;
 
 use App\Models\OpenRouterModel;
 use Throwable;

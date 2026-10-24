@@ -1,4 +1,4 @@
-<?php namespace Magistrale\Mixins;
+<?php namespace App\Mixins;
 
 use App\Models\OpenRouterModel;
 use Closure;

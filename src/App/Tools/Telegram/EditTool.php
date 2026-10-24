@@ -1,7 +1,7 @@
 <?php namespace App\Tools\Telegram;
 
 use InvalidArgumentException;
-use Magistrale\Dispatchers\Telegram\EditDispatcher;
+use App\Dispatchers\Telegram\EditDispatcher;
 
 final class EditTool
 {

@@ -1,6 +1,6 @@
 <?php
 
-use Magistrale\Clients\{FlClient, OpenRouterClient, TelegramClient};
+use App\Clients\{FlClient, OpenRouterClient, TelegramClient};
 
 return [
     FlClient::class => [

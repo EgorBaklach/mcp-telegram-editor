@@ -1,6 +1,6 @@
 <?php namespace Magistrale\Inflectors;
 
-use Magistrale\Dispatchers\Source\AbstractDispatcher;
+use App\Dispatchers\Source\AbstractDispatcher;
 
 class SourceInflector extends AbstractInflector
 {

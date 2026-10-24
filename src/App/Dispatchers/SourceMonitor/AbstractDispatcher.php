@@ -1,4 +1,4 @@
-<?php namespace Magistrale\Dispatchers\SourceMonitor;
+<?php namespace App\Dispatchers\SourceMonitor;
 
 use Cli\Commands\SourceMonitorCommand;
 use Magistrale\Contracts\{AgentInterface, DispatcherInterface, RedisInterface};

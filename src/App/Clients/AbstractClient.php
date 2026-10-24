@@ -1,4 +1,4 @@
-<?php namespace Magistrale\Clients;
+<?php namespace App\Clients;
 
 use GuzzleHttp\Client;
 use Magistrale\Contracts\ClientInterface;

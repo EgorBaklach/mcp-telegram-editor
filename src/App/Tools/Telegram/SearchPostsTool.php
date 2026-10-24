@@ -1,7 +1,7 @@
 <?php namespace App\Tools\Telegram;
 
 use InvalidArgumentException;
-use Magistrale\Dispatchers\Telegram\SearchPostsDispatcher;
+use App\Dispatchers\Telegram\SearchPostsDispatcher;
 
 final class SearchPostsTool
 {

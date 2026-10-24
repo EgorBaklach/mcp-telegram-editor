@@ -1,9 +1,9 @@
 <?php
 
+use App\Dispatchers\Source\AbstractDispatcher;
 use Framework\Contracts\Router\RouterInterface;
 use Framework\Inflectors\{AggregateInflector, RouteInflector};
 use Magistrale\Contracts\{MacroableInterface, OperableInterface};
-use Magistrale\Dispatchers\Source\AbstractDispatcher;
 use Magistrale\Inflectors\{CallbackInflector, MixinInflector, SourceInflector};
 
 return new AggregateInflector([

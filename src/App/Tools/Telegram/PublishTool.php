@@ -1,7 +1,7 @@
 <?php namespace App\Tools\Telegram;
 
 use InvalidArgumentException;
-use Magistrale\Dispatchers\Telegram\PublishDispatcher;
+use App\Dispatchers\Telegram\PublishDispatcher;
 
 final class PublishTool
 {

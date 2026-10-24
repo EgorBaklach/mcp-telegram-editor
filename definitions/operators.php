@@ -1,8 +1,9 @@
 <?php
 
+use App\Dispatchers\Source\{FlDispatcher, OpenRouterDispatcher};
+use App\Operators\{FlOperator, OpenRouterOperator};
 use Magistrale\Dispatchers\Migration\AbstractDispatcher as MigrationDispatcher;
-use Magistrale\Dispatchers\Source\{FlDispatcher, OpenRouterDispatcher};
-use Magistrale\Operators\{FlOperator, MigrateOperator, OpenRouterOperator};
+use Magistrale\Operators\MigrateOperator;
 
 return [
     FlDispatcher::class => FlOperator::class,

@@ -1,10 +1,10 @@
 <?php namespace Tests;
 
+use App\Dispatchers\SourceMonitor\OpenRouterDispatcher;
 use Cli\Commands\SourceMonitorCommand;
 use League\Container\DefinitionContainerInterface;
 use Magistrale\Agents\{AgyAgent, HermesAgent};
 use Magistrale\Contracts\RedisInterface;
-use Magistrale\Dispatchers\SourceMonitor\OpenRouterDispatcher;
 use Magistrale\Logging\ConsoleLogger;
 use PHPUnit\Framework\Attributes\TestDox;
 use Symfony\Component\Console\Command\Command;

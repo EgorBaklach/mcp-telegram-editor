@@ -1,6 +1,6 @@
 <?php namespace App\Tools\Fl;
 
-use Magistrale\Dispatchers\Source\FlDispatcher;
+use App\Dispatchers\Source\FlDispatcher;
 
 final class CheckNewOrdersTool
 {
