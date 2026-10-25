@@ -43,7 +43,7 @@ class OpenRouterDispatcher extends AbstractDispatcher
                     'modality' => $model['architecture']['modality'],
                     'description' => $model['description'],
                     'has_reasoning' => isset($model['reasoning']),
-                    'has_tool_use' => in_array('tools', $model['supported_parameters'], true),
+                    'supported_parameters' => $model['supported_parameters'],
                 ];
             }
 

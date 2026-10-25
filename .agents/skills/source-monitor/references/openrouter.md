@@ -3,7 +3,7 @@
 Мониторинг новых бесплатных моделей на OpenRouter для публикации обзоров на канале **Strong Elephant** (MCP-сервер `mcp-telegram-editor`).
 
 1. **Обнаружение:** инструмент `check_new_models`.
-   Поля каждого элемента в `new_models`: `model_id`, `name`, `context_length`, `modality`, `description`, `has_reasoning`, `has_tool_use`.
+   Поля каждого элемента в `new_models`: `model_id`, `name`, `context_length`, `modality`, `description`, `has_reasoning`, `supported_parameters`.
 2. **Анализ:** выполни `search_web` по названию модели и разработчику (официальный анонс, архитектура/MoE, лицензия, бенчмарки, сравнение с аналогами) и объедини с полями из п.1.
 3. **Подготовка материала:** активируй скилл `telegram_editor_strategy`.
    * Заголовок (первая строка): `<h1>🔎 Новая бесплатная модель на OpenRouter</h1>`

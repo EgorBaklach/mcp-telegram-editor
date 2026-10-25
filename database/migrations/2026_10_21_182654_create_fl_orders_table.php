@@ -9,8 +9,7 @@ return new class
     {
         Capsule::schema()->create('fl_orders', function(Blueprint $table)
         {
-            $table->id();
-            $table->unsignedBigInteger('project_id')->unique();
+            $table->unsignedBigInteger('project_id')->primary();
             $table->string('hash', 32)->unique();
             $table->string('title');
             $table->string('link');
