@@ -75,7 +75,7 @@ class OpenRouterTest extends TestCase
         ]);
 
         $mock = $this->createMock(OpenRouterClient::class);
-        $mock->method('getModels')->willReturn(new Response(200, [], $payload));
+        $mock->method('models')->willReturn(new Response(200, [], $payload));
         $this->container->add(OpenRouterClient::class, $mock);
 
         $dispatcher = $this->container->get(OpenRouterDispatcher::class);
@@ -101,7 +101,7 @@ class OpenRouterTest extends TestCase
     {
         $mock = $this->createMock(OpenRouterClient::class);
         $mock->expects($this->exactly(2))
-            ->method('getModels')
+            ->method('models')
             ->willReturnOnConsecutiveCalls(
                 new Response(200, [], json_encode([
                     'data' => [[
@@ -163,7 +163,7 @@ class OpenRouterTest extends TestCase
             }
         };
 
-        $response = $client->getNat64Models();
+        $response = $client->nat64();
         $this->assertSame(200, $response->getStatusCode());
         $this->assertSame(['openrouter.ai:443:[2a01:4f8:c2c:123f:64::1]', 'openrouter.ai:443:[2a00:1098:2b::1]'], $calls);
     }

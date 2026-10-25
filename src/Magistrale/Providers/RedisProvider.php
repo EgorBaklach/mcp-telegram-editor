@@ -24,12 +24,12 @@ final class RedisProvider extends AbstractProvider
                 self::mixin($mixin);
             }
 
-            public function isLocked(string $key, ?int $ttl = null): bool
+            public function locked(string $key, ?int $ttl = null): bool
             {
-                return $this->command(['SET', $key, '1', 'NX', 'EX', (string) ($ttl ?? $this->configs['lock_ttl'] ?? 660)]) !== 'OK';
+                return $this->command(['SET', $key, '1', 'NX', 'EX', (string) ($ttl ?? $this->configs['lock_ttl'])]) !== 'OK';
             }
 
-            public function releaseLock(string $key): bool
+            public function unlock(string $key): bool
             {
                 try
                 {
@@ -43,16 +43,16 @@ final class RedisProvider extends AbstractProvider
 
             public function command(array $args): mixed
             {
-                if(!$socket = @fsockopen($this->configs['host'], (int) $this->configs['port'], $errno, $errstr, (float) ($this->configs['timeout'] ?? 2.0)))
+                if(!$socket = @fsockopen($this->configs['host'], (int) $this->configs['port'], $errno, $errstr, (float) $this->configs['timeout']))
                 {
-                    throw new RuntimeException("Redis connection failed: {$errstr} ({$errno})");
+                    throw new RuntimeException('Redis connection failed: '.$errstr.' ('.$errno.')');
                 }
 
-                stream_set_timeout($socket, (int) ($this->configs['timeout'] ?? 2));
+                stream_set_timeout($socket, (int) $this->configs['timeout']);
 
                 try
                 {
-                    fwrite($socket, $this->encodeResp($args)); return $this->readResponse($socket);
+                    fwrite($socket, $this->encode($args)); return $this->read($socket);
                 }
                 finally
                 {
@@ -60,16 +60,16 @@ final class RedisProvider extends AbstractProvider
                 }
             }
 
-            private function readResponse($socket): mixed
+            private function read($socket): mixed
             {
-                $line = fgets($socket); if($line === false) throw new RuntimeException('Redis empty response'); $payload = substr($line, 1, -2);
+                $line = fgets($socket); if($line === false) throw new RuntimeException('Redis empty response'); $payload = substr($line, 1, -2); $length = (int) $payload;
 
                 return match($line[0])
                 {
                     '+' => $payload,
-                    ':' => (int) $payload,
-                    '$' => (int) $payload === -1 ? null : substr((string) stream_get_contents($socket, (int) $payload + 2), 0, -2),
-                    '-' => throw new RuntimeException("Redis error: {$payload}"),
+                    ':' => $length,
+                    '$' => $length === -1 ? null : substr(stream_get_contents($socket, $length + 2), 0, -2),
+                    '-' => throw new RuntimeException('Redis error: '.$payload),
                     default => $payload,
                 };
             }

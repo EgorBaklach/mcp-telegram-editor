@@ -86,17 +86,17 @@ class FlTest extends TestCase
         $mock = $this->createMock(FlClient::class);
         $mock->config = $this->container->get('clients')[FlClient::class];
         $mock->expects($this->exactly(2))
-            ->method('getProjects')
+            ->method('projects')
             ->willReturnOnConsecutiveCalls(
                 new Response(200, [], $initialHtml),
                 new Response(200, [], $catalogHtml)
             );
         $mock->expects($this->once())
-            ->method('applyFilter')
+            ->method('filter')
             ->with('test-csrf-123')
             ->willReturn(new Response(200, [], '{"result":true}'));
         $mock->expects($this->exactly(2))
-            ->method('getProject')
+            ->method('project')
             ->willReturnCallback(fn(string $uri) => str_contains($uri, '1004') ? new Response(200, [], $shortDetailHtml) : new Response(200, [], $validDetailHtml));
 
         $this->container->add(FlClient::class, $mock);
@@ -135,16 +135,16 @@ class FlTest extends TestCase
         $detail2001 = '<div id="projectp2001">'.str_repeat('Полное техническое задание на разработку нестандартного модуля обмена 1С:УТ и коробочного Битрикс24 с очередями и обработкой конфликтов ИНН. ', 3).'</div>';
 
         $mock = $this->createMock(FlClient::class);
-        $mock->method('getProjects')->willReturnOnConsecutiveCalls(
+        $mock->method('projects')->willReturnOnConsecutiveCalls(
             null,
             null
         );
-        $mock->method('getRss')->willReturnOnConsecutiveCalls(
+        $mock->method('rss')->willReturnOnConsecutiveCalls(
             new Response(200, [], $rssXml),
             null
         );
         $mock->config = $this->container->get('clients')[FlClient::class];
-        $mock->method('getProject')->willReturn(new Response(200, [], $detail2001));
+        $mock->method('project')->willReturn(new Response(200, [], $detail2001));
 
         $this->container->add(FlClient::class, $mock);
 

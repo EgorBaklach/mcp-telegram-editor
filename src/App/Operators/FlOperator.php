@@ -10,20 +10,20 @@ class FlOperator extends AbstractOperator
     {
         return [
             'fetch.native' => [
-                fn() => $dispatcher->client->getProjects(),
-                fn(ResponseInterface $initial) => $dispatcher->extractCsrf($initial),
-                fn(string $csrf) => $dispatcher->client->applyFilter($csrf),
-                fn() => $dispatcher->client->getProjects(),
-                fn(ResponseInterface $catalog) => $dispatcher->parseCatalog($catalog),
+                fn() => $dispatcher->client->projects(),
+                fn(ResponseInterface $initial) => $dispatcher->csrf($initial),
+                fn(string $csrf) => $dispatcher->client->filter($csrf),
+                fn() => $dispatcher->client->projects(),
+                fn(ResponseInterface $catalog) => $dispatcher->catalog($catalog),
             ],
             'fetch.rss' => [
-                fn() => $dispatcher->client->getRss(),
-                fn(ResponseInterface $rss) => $dispatcher->parseRss($rss),
+                fn() => $dispatcher->client->rss(),
+                fn(ResponseInterface $rss) => $dispatcher->rss($rss),
             ],
             'fetch.description' => [
-                fn(array $order) => $dispatcher->checkPreview($order),
-                fn(string $link) => $dispatcher->client->getProject($link),
-                fn(ResponseInterface $response) => $dispatcher->extractDescription($response),
+                fn(array $order) => $dispatcher->preview($order),
+                fn(string $link) => $dispatcher->client->project($link),
+                fn(ResponseInterface $response) => $dispatcher->description($response),
                 fn(string $description) => $dispatcher->detail($description),
             ],
         ];

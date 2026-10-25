@@ -2,7 +2,7 @@
 
 class OpenRouterDispatcher extends AbstractDispatcher
 {
-    protected const sourceName = 'openrouter';
+    protected const source = 'openrouter';
 
-    protected const lockKey = 'lock:source:openrouter';
+    protected const lock = 'lock:source:openrouter';
 }

@@ -13,7 +13,7 @@ class DownDispatcher extends AbstractDispatcher
 
         foreach($migrations as $row)
         {
-            $this->command->logger->comment("Откат миграции {$row->migration} (ID: {$row->id})... ");
+            $this->command->logger->comment('Откат миграции '.$row->migration.' (ID: '.$row->id.')... ');
 
             if($this->callback->migrate('resolve', 'down', $row->migration)) Migration::query()->where('id', $row->id)->delete(); else return false;
         }

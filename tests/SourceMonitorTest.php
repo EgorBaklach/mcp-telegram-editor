@@ -27,8 +27,8 @@ class SourceMonitorTest extends TestCase
 
         $this->redis = $this->container->get(RedisInterface::class);
         $this->fs = $this->container->get(Filesystem::class);
-        $this->redis->releaseLock('lock:source:openrouter');
-        $this->redis->releaseLock('lock:source:test');
+        $this->redis->unlock('lock:source:openrouter');
+        $this->redis->unlock('lock:source:test');
 
         $this->command = $this->container->get(SourceMonitorCommand::class);
         $this->command->setContainer($this->container);
@@ -38,20 +38,20 @@ class SourceMonitorTest extends TestCase
 
     protected function tearDown(): void
     {
-        $this->redis->releaseLock('lock:source:openrouter');
-        $this->redis->releaseLock('lock:source:test');
+        $this->redis->unlock('lock:source:openrouter');
+        $this->redis->unlock('lock:source:test');
         parent::tearDown();
     }
 
     #[TestDox('Redis и RedisMixin: кодируют RESP-фреймы, атомарно захватывают лок (SET NX EX), отклоняют дубли и освобождают лок (DEL)')]
     public function testRedisRespEncodingAndAtomicLockLifecycle(): void
     {
-        $this->assertSame("*2\r\n$3\r\nDEL\r\n$4\r\ntest\r\n", $this->redis->encodeResp(['DEL', 'test']));
+        $this->assertSame("*2\r\n$3\r\nDEL\r\n$4\r\ntest\r\n", $this->redis->encode(['DEL', 'test']));
 
-        $this->assertFalse($this->redis->isLocked('lock:source:test', 30));
-        $this->assertTrue($this->redis->isLocked('lock:source:test', 30));
-        $this->assertTrue($this->redis->releaseLock('lock:source:test'));
-        $this->assertFalse($this->redis->releaseLock('lock:source:test'));
+        $this->assertFalse($this->redis->locked('lock:source:test', 30));
+        $this->assertTrue($this->redis->locked('lock:source:test', 30));
+        $this->assertTrue($this->redis->unlock('lock:source:test'));
+        $this->assertFalse($this->redis->unlock('lock:source:test'));
     }
 
     #[TestDox('OpenRouterDispatcher и AgyAgent: создают изолированный HOME, выполняют процесс и удаляют HOME + лок в finally')]
@@ -66,7 +66,7 @@ class SourceMonitorTest extends TestCase
                 parent::__construct($container, $fs);
             }
 
-            protected function createProcess(string $prompt): Process
+            protected function process(string $prompt): Process
             {
                 return new Process(['php', '-r', 'if(!is_dir(getenv("HOME")."/.gemini/antigravity-cli")) exit(1); echo "No new models";'], null, ['HOME' => $this->home]);
             }
@@ -77,7 +77,7 @@ class SourceMonitorTest extends TestCase
 
         $this->assertTrue($dispatcher->dispatch('agy'));
         $this->assertDirectoryDoesNotExist($expectedHome);
-        $this->assertFalse($this->redis->isLocked('lock:source:openrouter', 10));
+        $this->assertFalse($this->redis->locked('lock:source:openrouter', 10));
     }
 
     #[TestDox('OpenRouterDispatcher: возвращает false при сбое процесса агента, но гарантированно удаляет HOME и снимает лок в finally')]
@@ -87,7 +87,7 @@ class SourceMonitorTest extends TestCase
 
         $failAgent = new class($this->container, $this->fs) extends AgyAgent
         {
-            protected function createProcess(string $prompt): Process
+            protected function process(string $prompt): Process
             {
                 return new Process(['php', '-r', 'fwrite(STDERR, "Fatal agent error"); exit(1);']);
             }
@@ -98,13 +98,13 @@ class SourceMonitorTest extends TestCase
 
         $this->assertFalse($dispatcher->dispatch('agy'));
         $this->assertDirectoryDoesNotExist($expectedHome);
-        $this->assertFalse($this->redis->isLocked('lock:source:openrouter', 10));
+        $this->assertFalse($this->redis->locked('lock:source:openrouter', 10));
     }
 
     #[TestDox('OpenRouterDispatcher: пропускает выполнение при удерживаемом Redis-локе и не снимает чужую блокировку')]
     public function testDispatcherSkipsWhenAlreadyLocked(): void
     {
-        $this->assertFalse($this->redis->isLocked('lock:source:openrouter', 60));
+        $this->assertFalse($this->redis->locked('lock:source:openrouter', 60));
 
         $called = false;
         $agent = new class($this->container, $this->fs, $called) extends AgyAgent
@@ -114,7 +114,7 @@ class SourceMonitorTest extends TestCase
                 parent::__construct($container, $fs);
             }
 
-            protected function createProcess(string $prompt): Process
+            protected function process(string $prompt): Process
             {
                 $this->called = true; return new Process(['php', '-v']);
             }
@@ -125,7 +125,7 @@ class SourceMonitorTest extends TestCase
 
         $this->assertTrue($dispatcher->dispatch('agy'));
         $this->assertFalse($called);
-        $this->assertTrue($this->redis->isLocked('lock:source:openrouter', 60));
+        $this->assertTrue($this->redis->locked('lock:source:openrouter', 60));
     }
 
     #[TestDox('SourceMonitorCommand и CommandMixin: возвращают INVALID без флага, FAILURE без имени агента и SUCCESS при валидном агенте')]
@@ -133,7 +133,7 @@ class SourceMonitorTest extends TestCase
     {
         $agent = new class($this->container, $this->fs) extends AgyAgent
         {
-            protected function createProcess(string $prompt): Process
+            protected function process(string $prompt): Process
             {
                 return new Process(['php', '-r', 'echo "OK";']);
             }

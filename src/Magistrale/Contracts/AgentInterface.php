@@ -2,9 +2,9 @@
 
 interface AgentInterface
 {
-    public function prepare(string $sourceName): void;
+    public function prepare(string $source): void;
     public function run(string $prompt): bool;
-    public function getOutput(): string;
-    public function getErrorOutput(): string;
+    public function output(): string;
+    public function error(): string;
     public function cleanup(): void;
 }

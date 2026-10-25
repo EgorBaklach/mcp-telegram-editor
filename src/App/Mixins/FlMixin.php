@@ -7,39 +7,39 @@ use SimpleXMLElement;
 
 class FlMixin
 {
-    public function extractCsrf(): Closure
+    public function csrf(): Closure
     {
         return function(ResponseInterface $response): ?string
         {
-            return preg_match('/<meta\s+name="csrf-token"\s+content="([^"]+)"/i', (string) $response->getBody(), $m) ? $m[1] : null;
+            return preg_match('/<meta\s+name=\x22csrf-token\x22\s+content=\x22([^\x22]+)\x22/i', $response->getBody(), $m) ? $m[1] : null;
         };
     }
 
-    public function parseCatalog(): Closure
+    public function catalog(): Closure
     {
         return function(ResponseInterface $response): ?true
         {
-            /** @var FlDispatcher $this */ $blocks = preg_split('/<div[^>]+id="project-item(\d+)"[^>]*>/i', (string) $response->getBody(), -1, PREG_SPLIT_DELIM_CAPTURE);
+            /** @var FlDispatcher $this */ $blocks = preg_split('/<div[^>]+id=\x22project-item(\d+)\x22[^>]*>/i', $response->getBody(), -1, PREG_SPLIT_DELIM_CAPTURE);
 
             for($i = 1, $count = count($blocks); $i < $count; $i += 2)
             {
                 $project_id = (int) $blocks[$i]; $chunk = $blocks[$i + 1];
 
-                if(!preg_match('/id="prj_name_'.$project_id.'"[^>]*href="([^"]+)"[^>]*>(.*?)<\/a>/is', $chunk, $nm)) continue;
+                if(!preg_match('/id=\x22prj_name_'.$project_id.'\x22[^>]*href=\x22([^\x22]+)\x22[^>]*>(.*?)<\/a>/is', $chunk, $nm)) continue;
 
-                $title = $this->cleanText($nm[2]);
-                $budget = preg_match('/b-post__price[^>]*>(.*?)<\/div>/is', $chunk, $pm) ? $this->cleanText($pm[1]) : null;
-                $preview = preg_match('/b-post__txt[^>]*>(.*?)<\/div>/is', $chunk, $tm) ? $this->cleanText($tm[1]) : '';
+                $title = $this->clean($nm[2]);
+                $budget = preg_match('/b-post__price[^>]*>(.*?)<\/div>/is', $chunk, $pm) ? $this->clean($pm[1]) : null;
+                $preview = preg_match('/b-post__txt[^>]*>(.*?)<\/div>/is', $chunk, $tm) ? $this->clean($tm[1]) : '';
                 $link = str_starts_with($nm[1], 'http') ? $nm[1] : 'https://www.fl.ru'.$nm[1];
 
-                $this->orders[] = compact('project_id', 'title', 'link', 'budget', 'preview') + ['hash' => $this->makeHash($title, $budget, $preview)];
+                $this->orders[] = compact('project_id', 'title', 'link', 'budget', 'preview') + ['hash' => $this->hash($title, $budget, $preview)];
             }
 
             return $this->orders ? true : null;
         };
     }
 
-    public function parseRss(): Closure
+    public function rss(): Closure
     {
         return function(ResponseInterface $response): ?true
         {
@@ -47,43 +47,41 @@ class FlMixin
 
             $pattern = '/('.implode('|', array_map(fn(string $k): string => preg_quote($k, '/'), $this->client->config['filter']['keywords'])).')/iu';
 
-            $xml = @simplexml_load_string((string) $response->getBody(), SimpleXMLElement::class, LIBXML_NOCDATA);
-
-            if(!$xml || !isset($xml->channel->item)) return null;
+            $xml = simplexml_load_string($response->getBody(), SimpleXMLElement::class, LIBXML_NOCDATA);
 
             foreach($xml->channel->item as $item)
             {
-                if(!preg_match('/\/projects\/(\d+)\//', $link = trim((string) $item->link), $m)) continue;
+                $link = trim($item->link); if(!preg_match('/\/projects\/(\d+)\//', $link, $m)) continue;
 
-                $title = $this->cleanText($item?->title); $budget = null;
+                $title = $this->clean($item->title); $budget = null;
 
-                if(preg_match('/^(.*?)\s*\((?:Бюджет:\s*)?([^()]+)\)\s*$/iu', $title, $bm))
+                if(preg_match('/^(.*?)\s*\(\s*(?:Бюджет:\s*)?([^()]+)\)\s*$/iu', $title, $bm))
                 {
                     $title = trim($bm[1]); $budget = trim($bm[2]);
                 }
 
-                $preview = $this->cleanText($item?->description);
+                $preview = $this->clean($item->description);
 
-                if($pattern && !preg_match($pattern, $title.' '.$preview)) continue;
+                if(!preg_match($pattern, $title.' '.$preview)) continue;
 
-                $this->orders[] = compact('title', 'link', 'budget', 'preview') + ['project_id' => (int) $m[1], 'hash' => $this->makeHash($title, $budget, $preview)];
+                $this->orders[] = compact('title', 'link', 'budget', 'preview') + ['project_id' => (int) $m[1], 'hash' => $this->hash($title, $budget, $preview)];
             }
 
             return $this->orders ? true : null;
         };
     }
 
-    public function extractDescription(): Closure
+    public function description(): Closure
     {
         return function(ResponseInterface $response): ?string
         {
-            /** @var FlDispatcher $this */ if(!preg_match('/<div[^>]+id="projectp\d+"[^>]*>(.*?)<\/div>/is', (string) $response->getBody(), $m)) return null;
+            /** @var FlDispatcher $this */ if(!preg_match('/<div[^>]+id=\x22projectp\d+\x22[^>]*>(.*?)<\/div>/is', $response->getBody(), $m)) return null;
 
-            return $this->cleanText(str_replace(['<br>', '<br/>', '<br />'], "\n", $m[1]), true);
+            return $this->clean(str_replace(['<br>', '<br/>', '<br />'], PHP_EOL, $m[1]), true);
         };
     }
 
-    public function checkPreview(): Closure
+    public function preview(): Closure
     {
         return function(array $order): ?string
         {
@@ -94,7 +92,7 @@ class FlMixin
                 $amount = (int) preg_replace('/\D+/', '', $bm[1]); if($amount < $this->client->config['criteria']['min_budget']) return null;
             }
 
-            return !$this->hasStopWords($order['title'].' '.$order['preview']) ? $order['link'] : null;
+            return !$this->stopWords($order['title'].' '.$order['preview']) ? $order['link'] : null;
         };
     }
 
@@ -102,11 +100,11 @@ class FlMixin
     {
         return function(string $description): ?string
         {
-            /** @var FlDispatcher $this */ return mb_strlen($description) >= $this->client->config['criteria']['min_length'] && !$this->hasStopWords($description) ? $description : null;
+            /** @var FlDispatcher $this */ return mb_strlen($description) >= $this->client->config['criteria']['min_length'] && !$this->stopWords($description) ? $description : null;
         };
     }
 
-    public function hasStopWords(): Closure
+    public function stopWords(): Closure
     {
         return function(string $text): bool
         {
@@ -118,21 +116,21 @@ class FlMixin
         };
     }
 
-    public function makeHash(): Closure
+    public function hash(): Closure
     {
         return function(string $title, ?string $budget, string $preview): string
         {
-            return md5(mb_strtolower(trim($title).'|'.trim((string) $budget).'|'.trim($preview)));
+            return md5(mb_strtolower(trim($title).'|'.trim($budget ?? '').'|'.trim($preview)));
         };
     }
 
-    public function cleanText(): Closure
+    public function clean(): Closure
     {
-        return function(mixed $html = null, bool $preserveLines = false): ?string
+        return function(mixed $html = null, bool $multiline = false): ?string
         {
             if(!$html) return null; $decoded = html_entity_decode(strip_tags($html), ENT_QUOTES | ENT_HTML5, 'UTF-8');
 
-            return trim(preg_replace($preserveLines ? '/[ \t]+/u' : '/\s+/u', ' ', $decoded));
+            return trim(preg_replace($multiline ? '/[ \t]+/u' : '/\s+/u', ' ', $decoded));
         };
     }
 }

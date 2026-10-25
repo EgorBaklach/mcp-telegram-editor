@@ -8,9 +8,9 @@ abstract class AbstractDispatcher implements DispatcherInterface
 {
     protected SourceMonitorCommand $command;
 
-    protected const sourceName = '';
+    protected const source = '';
 
-    protected const lockKey = '';
+    protected const lock = '';
 
     public function __construct(protected readonly RedisInterface $redis) {}
 
@@ -25,38 +25,38 @@ abstract class AbstractDispatcher implements DispatcherInterface
 
         if(!$payload || !isset($agents['drivers'][$payload]))
         {
-            return $this->command->logger->error('Укажите доступного AI-агента ('.implode(', ', array_keys($agents['drivers'])).') через --'.static::sourceName.'=ИМЯ_АГЕНТА');
+            return $this->command->logger->error('Укажите доступного AI-агента ('.implode(', ', array_keys($agents['drivers'])).') через --'.static::source.'=ИМЯ_АГЕНТА');
         }
 
-        if($this->redis->isLocked(static::lockKey))
+        if($this->redis->locked(static::lock))
         {
-            return $this->command->logger->comment('Источник '.static::sourceName.' уже обрабатывается (lock: '.static::lockKey.'). Пропуск.');
+            return $this->command->logger->comment('Источник '.static::source.' уже обрабатывается (lock: '.static::lock.'). Пропуск.');
         }
 
         /** @var AgentInterface $agent */ $agent = $this->command->container->get($agents['drivers'][$payload]);
 
         try
         {
-            $this->command->logger->comment("Запуск AI-агента ({$payload}) для источника ".static::sourceName.'...');
+            $this->command->logger->comment('Запуск AI-агента ('.$payload.') для источника '.static::source.'...');
 
-            $agent->prepare(static::sourceName);
+            $agent->prepare(static::source);
 
-            if(!$agent->run('Активируй скилл source-monitor и выполни pipeline для источника: '.static::sourceName))
+            if(!$agent->run('Активируй скилл source-monitor и выполни pipeline для источника: '.static::source))
             {
-                return $this->command->logger->error('Ошибка выполнения агента ('.static::sourceName.'): '.($agent->getErrorOutput() ?: $agent->getOutput()));
+                return $this->command->logger->error('Ошибка выполнения агента ('.static::source.'): '.($agent->error() ?: $agent->output()));
             }
 
-            if($output = $agent->getOutput()) $this->command->logger->comment($output);
+            if($output = $agent->output()) $this->command->logger->comment($output);
 
-            return $this->command->logger->info('Мониторинг источника '.static::sourceName.' успешно завершен.');
+            return $this->command->logger->info('Мониторинг источника '.static::source.' успешно завершен.');
         }
         catch(Throwable $e)
         {
-            return $this->command->logger->error('Сбой запуска агента ('.static::sourceName."): {$e->getMessage()}");
+            return $this->command->logger->error('Сбой запуска агента ('.static::source.'): '.$e->getMessage());
         }
         finally
         {
-            $agent->cleanup(); $this->redis->releaseLock(static::lockKey);
+            $agent->cleanup(); $this->redis->unlock(static::lock);
         }
     }
 }

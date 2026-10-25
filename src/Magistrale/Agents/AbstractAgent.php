@@ -10,20 +10,20 @@ abstract class AbstractAgent implements AgentInterface
 
     protected string $output = '';
 
-    protected string $errorOutput = '';
+    protected string $error = '';
 
     public function __construct(DefinitionContainerInterface $container, protected readonly Filesystem $fs)
     {
         $this->options = $container->get('agents');
     }
 
-    public function getOutput(): string
+    public function output(): string
     {
         return $this->output;
     }
 
-    public function getErrorOutput(): string
+    public function error(): string
     {
-        return $this->errorOutput;
+        return $this->error;
     }
 }

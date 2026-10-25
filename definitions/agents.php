@@ -9,9 +9,9 @@ return [
     ],
     'timeout' => 600,
     'agy' => [
-        'endpoint' => function(string $prompt, string $homeDir, int $timeout = 600)
+        'endpoint' => function(string $prompt, string $home, int $timeout = 600)
         {
-            return [['agy', '--dangerously-skip-permissions', '--print-timeout', "{$timeout}s", '-p', $prompt], null, ['HTTP_PROXY' => false, 'HTTPS_PROXY' => false, 'HOME' => $homeDir]];
+            return [['agy', '--dangerously-skip-permissions', '--print-timeout', $timeout.'s', '-p', $prompt], null, ['HTTP_PROXY' => false, 'HTTPS_PROXY' => false, 'HOME' => $home]];
         },
         'links' => [
             '.gemini/AGENTS.md',

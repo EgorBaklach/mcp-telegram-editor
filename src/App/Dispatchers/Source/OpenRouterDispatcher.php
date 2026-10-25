@@ -8,7 +8,7 @@ class OpenRouterDispatcher extends AbstractDispatcher
 {
     public function setCallback(CallbackInterface $callback): void
     {
-        $callback->container['openrouter.isFreeModel'] = fn(?array $pricing) => $pricing['prompt'] === '0' && $pricing['completion'] === '0'; $this->callback = $callback;
+        $callback->container['openrouter.free'] = fn(array $pricing) => $pricing['prompt'] === '0' && $pricing['completion'] === '0'; $this->callback = $callback;
     }
 
     public function dispatch(mixed $payload = null): bool
@@ -17,15 +17,15 @@ class OpenRouterDispatcher extends AbstractDispatcher
 
         try
         {
-            if(!$response = $this->client->getNat64Models() ?? $this->client->getModels()) return false;
+            if(!$response = $this->client->nat64() ?? $this->client->models()) return false;
 
-            if(!array_key_exists('data', $data = json_decode((string) $response->getBody(), true, 512, JSON_BIGINT_AS_STRING))) return false;
+            $data = json_decode($response->getBody(), true, 512, JSON_BIGINT_AS_STRING);
 
             $existing = OpenRouterModel::query()->select(['id', 'model_id'])->pluck('id', 'model_id')->all();
 
             foreach($data['data'] as $model)
             {
-                if(!$this->callback->openrouter('isFreeModel', $model['pricing']) || isset($existing[$model['id']])) continue; $existing[$model['id']] = true;
+                if(!$this->callback->openrouter('free', $model['pricing']) || isset($existing[$model['id']])) continue; $existing[$model['id']] = true;
 
                 OpenRouterModel::create([
                     'model_id' => $model['id'],
@@ -53,7 +53,7 @@ class OpenRouterDispatcher extends AbstractDispatcher
         }
         catch(Throwable $e)
         {
-            $this->logger->error('OpenRouter sync failed: '.(string) $e);
+            $this->logger->error('OpenRouter sync failed: '.(string) $e); $this->results = [];
         }
 
         return false;

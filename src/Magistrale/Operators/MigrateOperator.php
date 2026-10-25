@@ -17,7 +17,7 @@ class MigrateOperator extends AbstractOperator
             {
                 'all' => $query->get()->all(), null => $query->where('batch', Migration::query()->max('batch'))->get()->all() ?: [],
 
-                default => ctype_digit((string) $target) ? $query->where('id', (int) $target)->get()->all() : []
+                default => is_string($target) && ctype_digit($target) ? $query->where('id', (int) $target)->get()->all() : []
             },
             'migrate.resolve' => function(string $method, string $file) use ($dispatcher): bool
             {
@@ -25,9 +25,7 @@ class MigrateOperator extends AbstractOperator
                 {
                     if(!file_exists($file)) throw new RuntimeException('Файл миграции '.$file.' не найден.');
 
-                    if(!method_exists($instance = require $file, $method)) throw new RuntimeException('Метод миграции '.$file.' не найден');
-
-                    $instance->{$method}(); $dispatcher->command->logger->info($method.' миграции '.$file.' успешно выполнен');
+                    $instance = require $file; $instance->{$method}(); $dispatcher->command->logger->info($method.' миграции '.$file.' успешно выполнен');
 
                     return true;
                 }

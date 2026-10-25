@@ -4,7 +4,7 @@ use App\Models\TelegramPost;
 
 class EditDispatcher extends AbstractDispatcher
 {
-    protected const method = 'editMessage';
+    protected const method = 'edit';
 
     public function dispatch(mixed $payload = null): bool
     {

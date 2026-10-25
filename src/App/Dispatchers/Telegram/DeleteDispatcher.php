@@ -4,7 +4,7 @@ use App\Models\TelegramPost;
 
 class DeleteDispatcher extends AbstractDispatcher
 {
-    protected const method = 'deleteMessage';
+    protected const method = 'remove';
 
     public function dispatch(mixed $payload = null): bool
     {

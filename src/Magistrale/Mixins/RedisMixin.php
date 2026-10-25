@@ -4,11 +4,18 @@ use Closure;
 
 class RedisMixin
 {
-    public function encodeResp(): Closure
+    public function encode(): Closure
     {
         return function(array $args): string
         {
-            $payload = '*'.count($args)."\r\n"; foreach($args as $arg) $payload .= '$'.strlen((string) $arg)."\r\n{$arg}\r\n"; return $payload;
+            $eol = chr(13).PHP_EOL; $payload = '*'.count($args).$eol;
+
+            foreach($args as $arg)
+            {
+                $item = (string) $arg; $payload .= '$'.strlen($item).$eol.$item.$eol;
+            }
+
+            return $payload;
         };
     }
 }

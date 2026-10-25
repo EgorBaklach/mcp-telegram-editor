@@ -9,7 +9,7 @@ class MigrateCommand extends AbstractCommand
     protected function configure(): void
     {
         $this->addOption('up', null, InputOption::VALUE_NONE, 'Применить все ожидающие миграции (накатить)');
-        $this->addOption('down', null, InputOption::VALUE_OPTIONAL, 'Откат миграций (последний батч, "all" для всех, либо ID конкретной миграции)', false);
+        $this->addOption('down', null, InputOption::VALUE_OPTIONAL, 'Откат миграций (последний батч, all для всех, либо ID конкретной миграции)', false);
         $this->addOption('new', null, InputOption::VALUE_OPTIONAL, 'Создать новый файл миграции с указанным именем', false);
     }
 }

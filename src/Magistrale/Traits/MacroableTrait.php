@@ -11,7 +11,9 @@ trait MacroableTrait
 
     public static function mixin(object $mixin, bool $replace = true): void
     {
-        foreach((new ReflectionClass($mixin))->getMethods(ReflectionMethod::IS_PUBLIC | ReflectionMethod::IS_PROTECTED) as $method)
+        $reflection = new ReflectionClass($mixin);
+
+        foreach($reflection->getMethods(ReflectionMethod::IS_PUBLIC | ReflectionMethod::IS_PROTECTED) as $method)
         {
             if($replace || !static::hasMacro($method->name)) static::$macros[static::class][$method->name] = $method->invoke($mixin);
         }

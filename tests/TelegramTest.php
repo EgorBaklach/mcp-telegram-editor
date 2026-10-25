@@ -39,7 +39,7 @@ class TelegramTest extends TestCase
     {
         $mock = $this->createMock(TelegramClient::class);
         $mock->expects($this->exactly(2))
-            ->method('sendMessage')
+            ->method('publish')
             ->willReturnOnConsecutiveCalls(
                 new Response(200, [], '{"ok":true,"result":{"message_id":900001}}'),
                 new Response(500, [], 'Internal Server Error')
@@ -59,7 +59,7 @@ class TelegramTest extends TestCase
     {
         $mock = $this->createMock(TelegramClient::class);
         $mock->expects($this->exactly(2))
-            ->method('editMessage')
+            ->method('edit')
             ->willReturnCallback(function(array $payload): Response
             {
                 if($payload['message_id'] === 999) throw new RuntimeException('Telegram network failure');
@@ -84,7 +84,7 @@ class TelegramTest extends TestCase
 
         $mock = $this->createMock(TelegramClient::class);
         $mock->expects($this->once())
-            ->method('deleteMessage')
+            ->method('remove')
             ->with(900010)
             ->willReturn(new Response(200, [], '{"ok":true}'));
 

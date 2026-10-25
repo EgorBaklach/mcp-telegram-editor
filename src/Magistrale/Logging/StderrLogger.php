@@ -14,6 +14,6 @@ final class StderrLogger extends AbstractLogger
 
     public function log($level, $message, array $context = []): void
     {
-        fwrite($this->handle, sprintf("[%s] %s %s%s\n", date('H:i:s'), strtoupper((string) $level), $message, json_encode($context, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE)));
+        $level = strtoupper($level); fwrite($this->handle, sprintf('[%s] %s %s%s'.PHP_EOL, date('H:i:s'), $level, $message, json_encode($context, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE)));
     }
 }

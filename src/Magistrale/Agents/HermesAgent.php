@@ -2,24 +2,24 @@
 
 class HermesAgent extends AbstractAgent
 {
-    public function prepare(string $sourceName): void {}
+    public function prepare(string $source): void {}
 
     public function run(string $prompt): bool
     {
-        $this->initializeAcp();
-        $this->createSession();
-        $this->sendPrompt($prompt);
+        $this->initialize();
+        $this->session();
+        $this->prompt($prompt);
 
         return true;
     }
 
-    protected function initializeAcp(): void {}
+    protected function initialize(): void {}
 
-    protected function createSession(): void {}
+    protected function session(): void {}
 
-    protected function sendPrompt(string $prompt): void {}
+    protected function prompt(string $prompt): void {}
 
-    protected function approvePermission(string|int $requestId): void {}
+    protected function approve(string|int $id): void {}
 
     public function cleanup(): void {}
 }

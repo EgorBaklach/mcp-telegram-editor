@@ -4,7 +4,7 @@ use Psr\Http\Message\ResponseInterface;
 
 class TelegramClient extends AbstractClient
 {
-    public function sendMessage(string $text): ResponseInterface
+    public function publish(string $text): ResponseInterface
     {
         return $this->post('sendRichMessage', [
             'json' => [
@@ -16,17 +16,17 @@ class TelegramClient extends AbstractClient
         ]);
     }
 
-    public function deleteMessage(int $messageId): ResponseInterface
+    public function remove(int $id): ResponseInterface
     {
         return $this->post('deleteMessage', [
             'json' => [
                 'chat_id' => $this->config['chat_id'],
-                'message_id' => $messageId,
+                'message_id' => $id,
             ],
         ]);
     }
 
-    public function editMessage(array $payload): ResponseInterface
+    public function edit(array $payload): ResponseInterface
     {
         return $this->post('editMessageText', [
             'json' => [
