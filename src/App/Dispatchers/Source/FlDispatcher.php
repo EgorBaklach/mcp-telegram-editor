@@ -5,53 +5,46 @@ use Throwable;
 
 class FlDispatcher extends AbstractDispatcher
 {
+    private array $orders = [];
+
     public function dispatch(mixed $payload = null): bool
     {
-        $this->results = [];
+        $this->orders = []; $this->results = [];
 
         try
         {
-            if(!$orders = $this->callback->fetch('native') ?? $this->callback->fetch('rss')) return false;
+            if(!$this->callback->fetch('native') && !$this->callback->fetch('rss')) return false;
 
-            $existing = FlOrder::query()->select(['project_id', 'hash'])->pluck('hash', 'project_id')->all();
+            $existing = FlOrder::query()->select(['project_id', 'hash'])->pluck('project_id', 'hash')->all();
 
-            foreach($orders as $order)
+            foreach($this->orders as $order)
             {
-                if($this->isExisting($order, $existing)) continue;
+                if(isset($existing[$order['hash']])) continue; $existing[$order['hash']] = $order['project_id'];
 
-                $description = $this->callback->fetch('description', $order) ?? $order['preview'];
+                if($description = $this->callback->fetch('description', $order))
+                {
+                    $this->results[] = [
+                        'project_id' => $order['project_id'],
+                        'title' => $order['title'],
+                        'link' => $order['link'],
+                        'budget' => $order['budget'],
+                        'description' => $description,
+                    ];
+                }
 
-                FlOrder::create([
-                    'project_id' => $order['project_id'],
-                    'hash' => $order['hash'],
-                    'title' => $order['title'],
-                    'link' => $order['link'],
-                    'budget' => $order['budget'],
-                    'description' => $description,
-                    'published' => $this->isSmallTask($order, $description) ? false : null,
+                FlOrder::create($order + [
+                    'description' => $description ?? $order['preview'],
+                    'published' => $description ? null : false,
                 ]);
-
-                $existing[$order['project_id']] = $order['hash'];
             }
 
-            foreach(FlOrder::query()->whereNull('published')->select(['project_id', 'title', 'link', 'budget', 'description'])->orderBy('id')->cursor() as $row)
-            {
-                $this->results[] = [
-                    'project_id' => $row->project_id,
-                    'title' => $row->title,
-                    'link' => $row->link,
-                    'budget' => $row->budget,
-                    'description' => $row->description,
-                ];
-            }
-
-            $this->logger->info(sprintf('FL sync: %d pending', count($this->results)));
+            $this->logger->info(sprintf('FL sync: %d new', count($this->results)));
 
             return true;
         }
         catch(Throwable $e)
         {
-            $this->logger->error('FL sync failed: '.(string) $e);
+            $this->logger->error('FL sync failed: '.(string) $e); $this->results = [];
         }
 
         return false;

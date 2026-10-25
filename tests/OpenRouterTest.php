@@ -1,6 +1,5 @@
 <?php namespace Tests;
 
-use App\Clients\OpenRouterClient;
 use App\Dispatchers\Source\OpenRouterDispatcher;
 use App\Models\OpenRouterModel;
 use App\Tools\OpenRouter\{CheckNewModelsTool, MarkPublishedTool};
@@ -8,6 +7,7 @@ use GuzzleHttp\Psr7\Response;
 use Illuminate\Database\Capsule\Manager as Capsule;
 use InvalidArgumentException;
 use League\Container\DefinitionContainerInterface;
+use Magistrale\Clients\OpenRouterClient;
 use PHPUnit\Framework\Attributes\TestDox;
 use Psr\Http\Message\ResponseInterface;
 use RuntimeException;
@@ -87,9 +87,9 @@ class OpenRouterTest extends TestCase
         $this->assertTrue($results[0]['has_reasoning']);
         $this->assertTrue($results[0]['has_tool_use']);
 
-        // Проверяем, что для существующей модели с NULL дозаполнился released_at и не возникло Unique violation
-        $existing = OpenRouterModel::where('model_id', 'vendor/existing-null:free')->first();
-        $this->assertNotNull($existing?->released_at, 'Поле released_at должно быть дозаполнено у существующей модели');
+        // Проверяем, что для новой модели сохранился released_at, а существующая не продублировалась
+        $created = OpenRouterModel::where('model_id', 'vendor/new-free:free')->first();
+        $this->assertNotNull($created?->released_at, 'Поле released_at должно быть заполнено у новой модели');
 
         // Повторная синхронизация того же ответа должна вернуть 0 новых моделей
         $this->assertTrue($dispatcher->dispatch());
@@ -107,6 +107,10 @@ class OpenRouterTest extends TestCase
                     'data' => [[
                         'id' => 'vendor/tool-model:free',
                         'name' => 'Tool Model',
+                        'context_length' => 131072,
+                        'architecture' => ['modality' => 'text->text'],
+                        'description' => 'Tool model description',
+                        'supported_parameters' => ['tools'],
                         'pricing' => ['prompt' => '0', 'completion' => '0'],
                     ]],
                 ])),
@@ -159,7 +163,7 @@ class OpenRouterTest extends TestCase
             }
         };
 
-        $response = $client->getModels();
+        $response = $client->getNat64Models();
         $this->assertSame(200, $response->getStatusCode());
         $this->assertSame(['openrouter.ai:443:[2a01:4f8:c2c:123f:64::1]', 'openrouter.ai:443:[2a00:1098:2b::1]'], $calls);
     }

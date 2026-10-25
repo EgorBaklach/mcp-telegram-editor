@@ -1,10 +1,11 @@
 <?php namespace Tests;
 
-use App\Models\{Migration, TestRecord};
+use App\Models\TestRecord;
 use Cli\Commands\MigrateCommand;
 use Illuminate\Database\Capsule\Manager as Capsule;
 use Magistrale\Dispatchers\Migration\{CreateDispatcher, DownDispatcher, UpDispatcher};
 use Magistrale\Logging\ConsoleLogger;
+use Magistrale\Models\Migration;
 use PHPUnit\Framework\Attributes\TestDox;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\ArrayInput;

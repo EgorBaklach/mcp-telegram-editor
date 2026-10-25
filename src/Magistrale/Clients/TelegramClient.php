@@ -1,4 +1,4 @@
-<?php namespace App\Clients;
+<?php namespace Magistrale\Clients;
 
 use Psr\Http\Message\ResponseInterface;
 

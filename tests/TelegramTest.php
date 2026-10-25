@@ -1,6 +1,5 @@
 <?php namespace Tests;
 
-use App\Clients\TelegramClient;
 use App\Dispatchers\Telegram\{DeleteByTextDispatcher, DeleteDispatcher, EditDispatcher, PublishDispatcher, SearchPostsDispatcher};
 use App\Models\TelegramPost;
 use App\Tools\Mcp\PingTool;
@@ -8,6 +7,7 @@ use App\Tools\Telegram\{DeleteByTextTool, DeleteTool, EditTool, PublishTool, Sea
 use GuzzleHttp\Psr7\Response;
 use Illuminate\Database\Capsule\Manager as Capsule;
 use InvalidArgumentException;
+use Magistrale\Clients\TelegramClient;
 use PHPUnit\Framework\Attributes\TestDox;
 use RuntimeException;
 

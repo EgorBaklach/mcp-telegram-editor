@@ -1,7 +1,7 @@
 <?php namespace Magistrale\Inflectors;
 
-use App\Clients\AbstractClient;
 use Framework\Inflectors\AbstractInflector as BaseInflector;
+use Magistrale\Clients\AbstractClient;
 
 /**
  * @method object|null mixins(object $object)
@@ -12,7 +12,7 @@ abstract class AbstractInflector extends BaseInflector
 {
     public function __call(string $definition, array $arguments): ?object
     {
-        [$object] = $arguments; $container = $this->container(); $items = $container->get($definition);
+        $object = array_shift($arguments); $container = $this->container(); $items = $container->get($definition);
 
         if($class = $items[$object::class] ?? $items[get_parent_class($object)] ?? null)
         {

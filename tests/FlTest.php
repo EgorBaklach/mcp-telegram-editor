@@ -1,11 +1,11 @@
 <?php namespace Tests;
 
-use App\Clients\FlClient;
 use App\Dispatchers\Source\FlDispatcher;
 use App\Models\FlOrder;
 use App\Tools\Fl\CheckNewOrdersTool;
 use GuzzleHttp\Psr7\Response;
 use Illuminate\Database\Capsule\Manager as Capsule;
+use Magistrale\Clients\FlClient;
 use PHPUnit\Framework\Attributes\TestDox;
 
 class FlTest extends TestCase
@@ -84,6 +84,7 @@ class FlTest extends TestCase
         $validDetailHtml = '<div id="projectp1005">'.$fullDescription.'</div>';
 
         $mock = $this->createMock(FlClient::class);
+        $mock->config = $this->container->get('clients')[FlClient::class];
         $mock->expects($this->exactly(2))
             ->method('getProjects')
             ->willReturnOnConsecutiveCalls(
@@ -142,7 +143,7 @@ class FlTest extends TestCase
             new Response(200, [], $rssXml),
             null
         );
-        $mock->method('getKeywords')->willReturn(['битрикс', 'laravel', 'php']);
+        $mock->config = $this->container->get('clients')[FlClient::class];
         $mock->method('getProject')->willReturn(new Response(200, [], $detail2001));
 
         $this->container->add(FlClient::class, $mock);

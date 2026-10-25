@@ -2,6 +2,7 @@
 
 use App\Dispatchers\Source\FlDispatcher;
 use Magistrale\Operators\AbstractOperator;
+use Psr\Http\Message\ResponseInterface;
 
 class FlOperator extends AbstractOperator
 {
@@ -10,19 +11,20 @@ class FlOperator extends AbstractOperator
         return [
             'fetch.native' => [
                 fn() => $dispatcher->client->getProjects(),
-                fn($initial) => $dispatcher->extractCsrf($initial),
-                fn($csrf) => $dispatcher->client->applyFilter($csrf),
+                fn(ResponseInterface $initial) => $dispatcher->extractCsrf($initial),
+                fn(string $csrf) => $dispatcher->client->applyFilter($csrf),
                 fn() => $dispatcher->client->getProjects(),
-                fn($catalog) => $dispatcher->parseCatalog($catalog),
+                fn(ResponseInterface $catalog) => $dispatcher->parseCatalog($catalog),
             ],
             'fetch.rss' => [
                 fn() => $dispatcher->client->getRss(),
-                fn($rss) => $dispatcher->parseRss($rss, $dispatcher->client->getKeywords()),
+                fn(ResponseInterface $rss) => $dispatcher->parseRss($rss),
             ],
             'fetch.description' => [
-                fn(array $order) => !$dispatcher->isSmallTask($order, $order['preview'], false) ? [$order['link'], $order['project_id']] : null,
-                fn(string $link, int $projectId) => ($response = $dispatcher->client->getProject($link)) ? [$response, $projectId] : null,
-                fn($response, int $projectId) => $dispatcher->extractDescription($response, $projectId),
+                fn(array $order) => $dispatcher->checkPreview($order),
+                fn(string $link) => $dispatcher->client->getProject($link),
+                fn(ResponseInterface $response) => $dispatcher->extractDescription($response),
+                fn(string $description) => $dispatcher->detail($description),
             ],
         ];
     }

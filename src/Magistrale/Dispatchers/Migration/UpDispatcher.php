@@ -1,6 +1,6 @@
 <?php namespace Magistrale\Dispatchers\Migration;
 
-use App\Models\Migration;
+use Magistrale\Models\Migration;
 
 class UpDispatcher extends AbstractDispatcher
 {

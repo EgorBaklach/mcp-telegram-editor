@@ -1,6 +1,6 @@
 <?php namespace Magistrale\Operators;
 
-use App\Models\Migration;
+use Magistrale\Models\Migration;
 use Illuminate\Database\Eloquent\Builder;
 use Laminas\Stdlib\Glob;
 use Magistrale\Dispatchers\Migration\AbstractDispatcher;

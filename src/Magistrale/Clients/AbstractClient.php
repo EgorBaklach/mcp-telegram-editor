@@ -1,4 +1,4 @@
-<?php namespace App\Clients;
+<?php namespace Magistrale\Clients;
 
 use GuzzleHttp\Client;
 use Magistrale\Contracts\ClientInterface;
@@ -6,7 +6,7 @@ use Psr\Http\Message\ResponseInterface;
 
 abstract class AbstractClient extends Client implements ClientInterface
 {
-    public function __construct(protected array $config = [])
+    public function __construct(public array $config = [])
     {
         parent::__construct($config + ['http_errors' => false]);
     }

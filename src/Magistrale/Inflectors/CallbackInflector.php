@@ -6,13 +6,10 @@ class CallbackInflector extends AbstractInflector
 {
     public function __invoke(OperableInterface $object): void
     {
-        if($operator = $this->operators($object))
-        {
-            $callback = clone $this->container()->get(CallbackInterface::class);
+        $callback = clone $this->container()->get(CallbackInterface::class);
 
-            $callback->container = $operator($object);
+        if($operator = $this->operators($object)) $callback->container = $operator($object);
 
-            $object->setCallback($callback);
-        }
+        $object->setCallback($callback);
     }
 }

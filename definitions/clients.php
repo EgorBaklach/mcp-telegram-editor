@@ -1,6 +1,6 @@
 <?php
 
-use App\Clients\{FlClient, OpenRouterClient, TelegramClient};
+use Magistrale\Clients\{FlClient, OpenRouterClient, TelegramClient};
 
 return [
     FlClient::class => [
@@ -41,6 +41,15 @@ return [
             'without_pro' => true,
             'kind' => '',
             'prof_not_clear' => false,
+        ],
+        'criteria' => [
+            'min_budget' => 3000,
+            'min_length' => 150,
+            'stop_words' => [
+                'бпла', 'медкомисс', 'списание долгов', 'участок земли', 'судимос',
+                'куплю исходный код', 'привлечения клиентов', 'всплывающие окна',
+                'всплывающее окно', 'объединение дублирующих карточек', 'долго грузится', 'adguard',
+            ],
         ],
     ],
     OpenRouterClient::class => [
