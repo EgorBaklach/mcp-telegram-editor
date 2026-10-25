@@ -38,7 +38,6 @@ description: >-
   * **Telegram:** см. `DEV_TELEGRAM`
   * **GitHub:** `https://github.com/EgorBaklach`
   * **FL.ru:** `https://www.fl.ru/users/xooligan`
-  * **Сайт:** `strng.pro`
 * **Исходные файлы резюме на сервере:** `/root/experience/CV.pdf` (EN), `/root/experience/hh.pdf` (RU)
 
 ---
