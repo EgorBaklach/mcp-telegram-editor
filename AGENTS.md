@@ -76,10 +76,11 @@ docker exec mcp-telegram-editor php bin/console.php db:migrate --new=TableName
 ### 2. Мониторинг внешних источников (`source:monitor`)
 ```bash
 docker exec mcp-telegram-editor php bin/console.php source:monitor --openrouter=agy
+docker exec mcp-telegram-editor php bin/console.php source:monitor --fl=agy
 docker exec mcp-telegram-editor php bin/console.php source:monitor --openrouter=hermes
 ```
-* **Диспетчеры источников**: Наследуют `App\Dispatchers\SourceMonitor\AbstractDispatcher` (например, `OpenRouterDispatcher`).
-* **Защита от гонок (Redis Lock)**: Перед запуском AI-агента захватывается атомарный распределённый лок через `RedisInterface` (`Magistrale\Providers\RedisProvider` + `RedisMixin::encodeResp()`, `SET key 1 NX EX ttl` по прямому TCP RESP-протоколу) и гарантированно освобождается в блоке `finally`.
+* **Диспетчеры источников**: Наследуют `App\Dispatchers\SourceMonitor\AbstractDispatcher` (`OpenRouterDispatcher`, `FlDispatcher`).
+* **Защита от гонок (Redis Lock)**: Перед запуском AI-агента захватывается атомарный распределённый лок через `RedisInterface` (`Magistrale\Providers\RedisProvider` + `RedisMixin::encode()`, `SET key 1 NX EX ttl` по прямому TCP RESP-протоколу) и гарантированно освобождается в блоке `finally`.
 * **Драйверы AI-агентов (`Magistrale\Agents`)**: Реализуют `AgentInterface` и настраиваются в `definitions/agents.php`:
   * `AgyAgent` — создаёт изолированный эфемерный каталог `HOME` в `/tmp/agy-home-{source}`, прокидывает симлинки конфигурации и запускает процесс `agy`, удаляя временный `HOME` по завершении.
   * `HermesAgent` — заготовка драйвера под протокол ACP (Agent Communication Protocol).
@@ -88,11 +89,11 @@ docker exec mcp-telegram-editor php bin/console.php source:monitor --openrouter=
 
 ## 🧪 Тестирование и Среда разработки (LSP/IDE)
 
-* Запуск всех тестов (`25 tests, 139 assertions`):
+* Запуск всех тестов (`25 tests, 147 assertions`):
   ```bash
   docker exec mcp-telegram-editor vendor/bin/phpunit --testdox
   ```
-* Покрытие включает: `ApplicationTest` (DI-контейнер и система миксинов), `HttpTest` (CORS и стратегии ответов), `DatabaseMigrationTest` (Eloquent и все сценарии `db:migrate`, включая защиту от невалидных целей), `TelegramTest` (все 6 инструментов, откат транзакций при сетевых сбоях и экранирование спецсимволов `ILIKE`), `OpenRouterTest` (`OpenRouterDispatcher`, дедупликация, NAT64 failover), `FlTest` (`FlDispatcher`, `FlOperator`, `FlMixin`, дедупликация по `hash`, фильтрация мелких задач и RSS-фоллбек) и `SourceMonitorTest` (Redis-локи, жизненный цикл эфемерного `HOME`, коды возврата CLI).
+* Покрытие включает: `ApplicationTest` (DI-контейнер и система миксинов), `HttpTest` (CORS и стратегии ответов), `DatabaseMigrationTest` (Eloquent и все сценарии `db:migrate`, включая защиту от невалидных целей), `TelegramTest` (все 6 инструментов, откат транзакций при сетевых сбоях и экранирование спецсимволов `ILIKE`), `OpenRouterTest` (`OpenRouterDispatcher`, дедупликация, NAT64 failover), `FlTest` (`FlDispatcher`, `FlOperator`, `FlMixin`, `CheckNewOrdersTool`, `MarkOrderTool`, дедупликация по `hash`, фильтрация мелких задач и RSS-фоллбек) и `SourceMonitorTest` (Redis-локи, жизненный цикл эфемерного `HOME`, коды возврата CLI для `--openrouter` и `--fl`).
 * Для помощи LSP/IDE (Intelephense) используется файл `_ide_helper.php`:
   * **Обязательное пополнение для миксинов**: При создании новых миксинов (`src/Magistrale/Mixins/*Mixin.php` и `src/App/Mixins/*Mixin.php`) агент обязан автоматически дополнять `_ide_helper.php` соответствующими `@method`-аннотациями на целевом классе, чтобы избежать предупреждений LSP (`Undefined method`).
   * В остальных случаях (вне системы миксинов) дополнять `_ide_helper.php` заглушками можно только по прямому запросу пользователя.
@@ -103,12 +104,13 @@ docker exec mcp-telegram-editor php bin/console.php source:monitor --openrouter=
 
 * **Архитектура слоёв (`Framework` / `Magistrale` / `App`)**: Завершено строгое разделение инфраструктурного ядра `Magistrale` (0 зависимостей от `App`) и прикладного слоя `App`, стандартизировано именование `[Назначение][Слой]` и унифицированы инфлекторы (`AbstractInflector`) и колбэки (`OperableInterface` + `CallbackInterface`).
 * **Telegram Bot API 10.3**: Поддержана отправка и редактирование постов через `sendRichMessage` и `editMessageText` (`rich_message`).
-* **OpenRouter Tracker & Source Monitor**: Реализован полный цикл мониторинга бесплатных моделей OpenRouter (`check_new_models`, `mark_published`), NAT64 IPv6 failover и оркестрация фонового запуска AI-агентов через `source:monitor` с Redis-блокировками.
-* **FL.ru Tracker (в процессе — Этапы 1 и 2 завершены, далее Этапы 3 и 4)**: Реализованы таблица `fl_orders` и модель `FlOrder`, клиент `FlClient`, оператор `FlOperator`, миксин `FlMixin`, диспетчер `FlDispatcher` и базовый тул `CheckNewOrdersTool`. Детальный handoff-план для продолжения находится в `.agents/FL_RU_PLAN.md`.
+* **OpenRouter Tracker & Source Monitor**: Реализован полный цикл мониторинга бесплатных моделей OpenRouter (`check_new_models`, `mark_published`), NAT64 IPv6 failover и оркестрация фонового запуска AI-агентов через `source:monitor --openrouter=agy` с Redis-блокировками.
+* **FL.ru Tracker & Source Monitor**: Полностью реализован пайплайн мониторинга заказов FL.ru (`fl_orders` с `PRIMARY KEY (project_id)`, `FlClient`, `FlOperator`, `FlMixin`, `Source\FlDispatcher`, `SourceMonitor\FlDispatcher`, инструменты `check_new_orders` и `mark_order`, CLI-вызов `source:monitor --fl=agy`).
 
 ---
 
 ## 📡 Скиллы агента (`.agents/skills/`)
 
-* **`source-monitor`** — универсальный pipeline мониторинга внешних источников данных. Описывает 5-шаговый процесс: обнаружение → исследование → составление поста → публикация → фиксация. Подключённый источник: OpenRouter (бесплатные AI-модели).
-* **`telegram_editor_strategy`** — правила составления постов для канала Strong Elephant (тональность, Rich HTML формат с таблицами, списками, заголовками и аккордеонами, объём 4000-8000 символов, методология Фундамент → Каркас → Структура → Финал).
+* **`developer-profile`** — профессиональный профиль, стек технологий, портфолио проектов и коммерческие условия разработчика (приватные контакты вынесены в локальный `.agents/skills/developer-profile/.env`).
+* **`source-monitor`** — универсальный pipeline мониторинга внешних источников данных (5 шагов: обнаружение → анализ → подготовка материала → доставка → фиксация). Подключённые источники: `openrouter` (бесплатные AI-модели) и `fl` (дайджест заказов FL.ru с автогенерацией отклика).
+* **`telegram_editor_strategy`** — правила составления лонгридов для канала Strong Elephant (тональность, Rich HTML формат с таблицами, списками, заголовками и аккордеонами, объём 4000-8000 символов, методология Фундамент → Каркас → Структура → Финал).
