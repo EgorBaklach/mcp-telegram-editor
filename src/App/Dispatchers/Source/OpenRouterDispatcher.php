@@ -23,7 +23,7 @@ class OpenRouterDispatcher extends AbstractDispatcher
 
             $existing = OpenRouterModel::query()->select(['id', 'model_id'])->pluck('id', 'model_id')->all();
 
-            foreach($data['data'] as $model)
+            foreach(array_reverse($data['data']) as $model)
             {
                 if(!$this->callback->openrouter('free', $model['pricing']) || isset($existing[$model['id']])) continue; $existing[$model['id']] = true;
 

@@ -17,7 +17,7 @@ class FlDispatcher extends AbstractDispatcher
 
             $existing = FlOrder::query()->select(['project_id', 'hash'])->pluck('project_id', 'hash')->all();
 
-            foreach($this->orders as $order)
+            foreach(array_reverse($this->orders) as $order)
             {
                 if(isset($existing[$order['hash']])) continue; $existing[$order['hash']] = $order['project_id'];
 
