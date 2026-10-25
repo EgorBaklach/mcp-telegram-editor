@@ -6,7 +6,7 @@ final class CheckNewOrdersTool
 {
     public function __construct(private FlDispatcher $dispatcher) {}
 
-    public function checkNewOrders(): string
+    public function check(): string
     {
         if(!$this->dispatcher->dispatch()) return json_encode(['status' => 'error', 'message' => 'sync failed']);
 

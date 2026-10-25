@@ -2,9 +2,10 @@
 
 use App\Dispatchers\Source\FlDispatcher;
 use App\Models\FlOrder;
-use App\Tools\Fl\CheckNewOrdersTool;
+use App\Tools\Fl\{CheckNewOrdersTool, MarkOrderTool};
 use GuzzleHttp\Psr7\Response;
 use Illuminate\Database\Capsule\Manager as Capsule;
+use InvalidArgumentException;
 use Magistrale\Clients\FlClient;
 use PHPUnit\Framework\Attributes\TestDox;
 
@@ -149,13 +150,23 @@ class FlTest extends TestCase
         $this->container->add(FlClient::class, $mock);
 
         $tool = $this->container->get(CheckNewOrdersTool::class);
-        $ok = json_decode($tool->checkNewOrders(), true);
+        $ok = json_decode($tool->check(), true);
         $this->assertSame('ok', $ok['status']);
         $this->assertCount(1, $ok['new_orders']);
         $this->assertSame(2001, $ok['new_orders'][0]['project_id']);
         $this->assertSame('120 000 ₽', $ok['new_orders'][0]['budget']);
 
-        $err = json_decode($tool->checkNewOrders(), true);
+        $err = json_decode($tool->check(), true);
         $this->assertSame('error', $err['status']);
+
+        $markTool = $this->container->get(MarkOrderTool::class);
+        $this->assertSame('success', $markTool->mark(2001, true));
+        $this->assertTrue(FlOrder::where('project_id', 2001)->first()->published);
+        $this->assertSame('success', $markTool->mark(2001, false));
+        $this->assertFalse(FlOrder::where('project_id', 2001)->first()->published);
+        $this->assertSame('not found', $markTool->mark(999999, true));
+
+        $this->expectException(InvalidArgumentException::class);
+        $markTool->mark(0, true);
     }
 }

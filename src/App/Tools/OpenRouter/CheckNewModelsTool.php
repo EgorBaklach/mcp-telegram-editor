@@ -6,7 +6,7 @@ final class CheckNewModelsTool
 {
     public function __construct(private OpenRouterDispatcher $dispatcher) {}
 
-    public function checkNewModels(): string
+    public function check(): string
     {
         if(!$this->dispatcher->dispatch()) return json_encode(['status' => 'error', 'message' => 'sync failed']);
 

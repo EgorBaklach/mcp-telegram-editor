@@ -1,6 +1,6 @@
 <?php
 
-use App\Dispatchers\SourceMonitor\OpenRouterDispatcher;
+use App\Dispatchers\SourceMonitor\{FlDispatcher, OpenRouterDispatcher};
 use Cli\Commands\{HelloWorldCommand, MigrateCommand, SourceMonitorCommand};
 use Magistrale\Dispatchers\Migration\{CreateDispatcher, DownDispatcher, UpDispatcher};
 
@@ -13,5 +13,6 @@ return [
     ],
     SourceMonitorCommand::class => [
         'openrouter' => OpenRouterDispatcher::class,
+        'fl' => FlDispatcher::class,
     ],
 ];

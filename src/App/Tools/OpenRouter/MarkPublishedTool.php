@@ -8,7 +8,7 @@ final class MarkPublishedTool
 {
     public function __construct(private readonly Capsule $capsule) {}
 
-    public function markPublished(string $modelId): string
+    public function mark(string $modelId): string
     {
         if(!$modelId) throw new InvalidArgumentException('$modelId must not be empty');
 

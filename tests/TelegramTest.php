@@ -119,7 +119,7 @@ class TelegramTest extends TestCase
         foreach([
             fn() => $this->container->get(PublishTool::class)->publish(''),
             fn() => $this->container->get(DeleteTool::class)->delete(0),
-            fn() => $this->container->get(DeleteByTextTool::class)->deleteByText(''),
+            fn() => $this->container->get(DeleteByTextTool::class)->delete(''),
             fn() => $this->container->get(EditTool::class)->edit(0, 'text'),
             fn() => $this->container->get(EditTool::class)->edit(1, ''),
             fn() => $this->container->get(SearchPostsTool::class)->search(''),

@@ -120,20 +120,20 @@ class OpenRouterTest extends TestCase
         $this->container->add(OpenRouterClient::class, $mock);
 
         $checkTool = $this->container->get(CheckNewModelsTool::class);
-        $okJson = json_decode($checkTool->checkNewModels(), true);
+        $okJson = json_decode($checkTool->check(), true);
         $this->assertSame('ok', $okJson['status']);
         $this->assertCount(1, $okJson['new_models']);
 
-        $errJson = json_decode($checkTool->checkNewModels(), true);
+        $errJson = json_decode($checkTool->check(), true);
         $this->assertSame('error', $errJson['status']);
 
         $markTool = $this->container->get(MarkPublishedTool::class);
-        $this->assertSame('success', $markTool->markPublished('vendor/tool-model:free'));
+        $this->assertSame('success', $markTool->mark('vendor/tool-model:free'));
         $this->assertTrue(OpenRouterModel::where('model_id', 'vendor/tool-model:free')->first()->published);
-        $this->assertSame('not found', $markTool->markPublished('vendor/unknown:free'));
+        $this->assertSame('not found', $markTool->mark('vendor/unknown:free'));
 
         $this->expectException(InvalidArgumentException::class);
-        $markTool->markPublished('');
+        $markTool->mark('');
     }
 
     #[TestDox('OpenRouter Client: переключается на резервный шлюз NAT64 при сбое первого и откатывается на прямой запрос, если все шлюзы недоступны')]
