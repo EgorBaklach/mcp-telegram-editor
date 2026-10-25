@@ -42,6 +42,17 @@ class FlTest extends TestCase
         $existingHash = md5(mb_strtolower($existingTitle.'|'.$existingBudget.'|'.$existingPreview));
 
         FlOrder::create([
+            'project_id' => 999,
+            'hash' => md5('expired'),
+            'title' => 'Устаревший заказ старше 30 дней',
+            'link' => 'https://www.fl.ru/projects/999/old.html',
+            'budget' => '100 000 ₽',
+            'description' => 'Старый заказ',
+            'published' => false,
+        ]);
+        FlOrder::where('project_id', 999)->update(['created_at' => date('Y-m-d H:i:s', strtotime('-31 days'))]);
+
+        FlOrder::create([
             'project_id' => 1001,
             'hash' => $existingHash,
             'title' => $existingTitle,
@@ -110,6 +121,7 @@ class FlTest extends TestCase
         $this->assertSame(1005, $results[0]['project_id']);
         $this->assertStringContainsString('PostgreSQL', $results[0]['description']);
 
+        $this->assertNull(FlOrder::where('project_id', 999)->first(), 'Заказ старше 30 дней должен автоматически удаляться по TTL');
         $this->assertNull(FlOrder::where('project_id', 1002)->first(), 'Клон 1002 должен быть отсечен по совпадению hash без записи дубля');
         $this->assertFalse(FlOrder::where('project_id', 1003)->first()->published, 'Мелкий заказ за 500 ₽ должен сохраниться с published=false');
         $this->assertFalse(FlOrder::where('project_id', 1004)->first()->published, 'Заказ с коротким описанием (<150 символов) должен сохраниться с published=false');

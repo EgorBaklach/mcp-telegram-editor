@@ -43,6 +43,7 @@ return [
             'prof_not_clear' => false,
         ],
         'criteria' => [
+            'ttl' => '-30 days',
             'min_budget' => 3000,
             'min_length' => 150,
             'stop_words' => [

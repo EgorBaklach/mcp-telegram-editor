@@ -13,6 +13,8 @@ class FlDispatcher extends AbstractDispatcher
 
         try
         {
+            FlOrder::where('created_at', '<', date('Y-m-d H:i:s', strtotime($this->client->config['criteria']['ttl'])))->delete();
+
             if(!$this->callback->fetch('native') && !$this->callback->fetch('rss')) return false;
 
             $existing = FlOrder::query()->select(['project_id', 'hash'])->pluck('project_id', 'hash')->all();
