@@ -42,7 +42,7 @@ class TelegramTest extends TestCase
             ->method('publish')
             ->willReturnOnConsecutiveCalls(
                 new Response(200, [], '{"ok":true,"result":{"message_id":900001}}'),
-                new Response(500, [], 'Internal Server Error')
+                null
             );
 
         $this->container->add(TelegramClient::class, $mock);

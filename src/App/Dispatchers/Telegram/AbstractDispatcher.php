@@ -23,9 +23,7 @@ abstract class AbstractDispatcher implements DispatcherInterface, MacroableInter
     {
         try
         {
-            $this->response = $this->client->{static::method}($payload);
-
-            if($this->response->getStatusCode() !== 200) throw new RuntimeException('HTTP '.$this->response->getStatusCode().': '.(string) $this->response->getBody());
+            if(!$this->response = $this->client->{static::method}($payload)) throw new RuntimeException('Telegram API request failed: '.static::method);
 
             $this->logger->info('Telegram API result: '.(string) $this->response->getBody()); return true;
         }
