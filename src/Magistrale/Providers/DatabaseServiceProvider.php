@@ -23,11 +23,15 @@ final class DatabaseServiceProvider extends AbstractProvider implements Bootable
         {
             $capsule = new Capsule;
 
-            $capsule->addConnection($this->database);
+            $capsule->addConnection($this->database['access']);
 
-            // Настраиваем Capsule глобально при первом разрешении сервиса
             $capsule->setAsGlobal();
             $capsule->bootEloquent();
+
+            foreach($this->database['mixins'] as $builder => $mixin)
+            {
+                $builder::mixin($this->container()->get($mixin));
+            }
 
             return $capsule;
         });

@@ -13,39 +13,29 @@ class OpenRouterDispatcher extends AbstractDispatcher
 
     public function dispatch(mixed $payload = null): bool
     {
-        $this->results = [];
+        $this->results = []; $this->upsert = [];
 
         try
         {
             if(!$response = $this->client->nat64() ?? $this->client->models()) return false;
 
-            $data = json_decode($response->getBody(), true, 512, JSON_BIGINT_AS_STRING);
+            $result = json_decode($response->getBody(), true, 512, JSON_BIGINT_AS_STRING);
 
-            $existing = OpenRouterModel::query()->select(['id', 'model_id'])->pluck('id', 'model_id')->all();
-
-            foreach(array_reverse($data['data']) as $model)
+            foreach($result['data'] as $model)
             {
-                if(!$this->callback->openrouter('free', $model['pricing']) || isset($existing[$model['id']])) continue; $existing[$model['id']] = true;
+                if(!$this->callback->openrouter('free', $model['pricing'])) continue;
 
-                OpenRouterModel::create([
+                $this->upsert[$model['id']] = [
                     'model_id' => $model['id'],
                     'name' => $model['name'],
                     'accessible' => 'free',
                     'context_length' => $model['context_length'],
                     'modality' => $model['architecture']['modality'],
                     'released_at' => isset($model['created']) ? date('Y-m-d H:i:s', $model['created']) : null,
-                ]);
-
-                $this->results[] = [
-                    'model_id' => $model['id'],
-                    'name' => $model['name'],
-                    'context_length' => $model['context_length'],
-                    'modality' => $model['architecture']['modality'],
-                    'description' => $model['description'],
-                    'has_reasoning' => isset($model['reasoning']),
-                    'supported_parameters' => $model['supported_parameters'],
                 ];
             }
+
+            $this->results = OpenRouterModel::ingest(array_reverse($this->upsert), 'model_id', fn(string $id) => $this->upsert[$id]);
 
             $this->logger->info(sprintf('OpenRouter sync: %d new', count($this->results)));
 

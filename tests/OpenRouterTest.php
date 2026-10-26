@@ -53,6 +53,8 @@ class OpenRouterTest extends TestCase
                     'id' => 'vendor/existing-null:free',
                     'name' => 'Existing Null ReleasedAt',
                     'created' => 1753164000,
+                    'context_length' => 131072,
+                    'architecture' => ['modality' => 'text->text'],
                     'pricing' => ['prompt' => '0', 'completion' => '0'],
                 ],
                 [
@@ -84,8 +86,8 @@ class OpenRouterTest extends TestCase
         $results = $dispatcher->getResults();
         $this->assertCount(1, $results, 'В результаты должна попасть только действительно новая бесплатная модель');
         $this->assertSame('vendor/new-free:free', $results[0]['model_id']);
-        $this->assertTrue($results[0]['has_reasoning']);
-        $this->assertSame(['tools', 'temperature'], $results[0]['supported_parameters']);
+        $this->assertSame(131072, $results[0]['context_length']);
+        $this->assertSame('text->text', $results[0]['modality']);
 
         // Проверяем, что для новой модели сохранился released_at, а существующая не продублировалась
         $created = OpenRouterModel::where('model_id', 'vendor/new-free:free')->first();

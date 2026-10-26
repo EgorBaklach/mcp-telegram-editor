@@ -66,7 +66,7 @@ class FlTest extends TestCase
         $catalogHtml = '
             <div id="project-item1001">
                 <a id="prj_name_1001" href="/projects/1001/crm.html">Разработка CRM на Laravel</a>
-                <div class="b-post__price">150 000 ₽</div>
+                <div class="b-post__price">180 000 ₽</div>
                 <div class="b-post__txt">Краткое превью существующего заказа</div>
             </div>
             <div id="project-item1002">

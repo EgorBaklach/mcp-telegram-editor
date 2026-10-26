@@ -5,40 +5,24 @@ use Throwable;
 
 class FlDispatcher extends AbstractDispatcher
 {
-    private array $orders = [];
-
     public function dispatch(mixed $payload = null): bool
     {
-        $this->orders = []; $this->results = [];
+        $this->results = []; $this->upsert = [];
 
         try
         {
-            FlOrder::where('created_at', '<', date('Y-m-d H:i:s', strtotime($this->client->config['criteria']['ttl'])))->delete();
+            FlOrder::query()->where('created_at', '<', date('Y-m-d H:i:s', strtotime($this->client->config['criteria']['ttl'])))->delete();
 
             if(!$this->callback->fetch('native') && !$this->callback->fetch('rss')) return false;
 
-            $existing = FlOrder::query()->select(['project_id', 'hash'])->pluck('project_id', 'hash')->all();
-
-            foreach(array_reverse($this->orders) as $order)
+            foreach(FlOrder::ingest(array_reverse($this->upsert), 'project_id') as $id)
             {
-                if(isset($existing[$order['hash']])) continue; $existing[$order['hash']] = $order['project_id'];
+                if(!$description = $this->callback->fetch('description', $order = $this->upsert[$id])) continue;
 
-                if($description = $this->callback->fetch('description', $order))
-                {
-                    $this->results[] = [
-                        'project_id' => $order['project_id'],
-                        'title' => $order['title'],
-                        'link' => $order['link'],
-                        'budget' => $order['budget'],
-                        'description' => $description,
-                    ];
-                }
-
-                FlOrder::create($order + [
-                    'description' => $description ?? $order['preview'],
-                    'published' => $description ? null : false,
-                ]);
+                $this->results[] = ['description' => $description, 'published' => null] + $order;
             }
+
+            FlOrder::upsert($this->results, ['project_id'], ['description', 'published']);
 
             $this->logger->info(sprintf('FL sync: %d new', count($this->results)));
 

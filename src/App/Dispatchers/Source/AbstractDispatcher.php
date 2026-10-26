@@ -14,6 +14,8 @@ abstract class AbstractDispatcher implements DispatcherInterface, ResultInterfac
 
     protected array $results = [];
 
+    protected array $upsert = [];
+
     public function __construct(protected readonly Capsule $capsule, protected readonly LoggerInterface $logger) {}
 
     public function setClient(Client $client): void

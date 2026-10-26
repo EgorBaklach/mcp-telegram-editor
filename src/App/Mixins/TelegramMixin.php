@@ -25,7 +25,7 @@ class TelegramMixin
     {
         return function(): int
         {
-            /** @var AbstractDispatcher $this */ return (int) $this->decode()['result']['message_id'];
+            /** @var AbstractDispatcher $this */ $result = $this->decode(); return (int) $result['result']['message_id'];
         };
     }
 }

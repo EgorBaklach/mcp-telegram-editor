@@ -29,13 +29,13 @@ class FlMixin
 
                 $title = $this->clean($nm[2]);
                 $budget = preg_match('/b-post__price[^>]*>(.*?)<\/div>/is', $chunk, $pm) ? $this->clean($pm[1]) : null;
-                $preview = preg_match('/b-post__txt[^>]*>(.*?)<\/div>/is', $chunk, $tm) ? $this->clean($tm[1]) : '';
+                $description = preg_match('/b-post__txt[^>]*>(.*?)<\/div>/is', $chunk, $tm) ? $this->clean($tm[1]) : '';
                 $link = str_starts_with($nm[1], 'http') ? $nm[1] : 'https://www.fl.ru'.$nm[1];
 
-                $this->orders[] = compact('project_id', 'title', 'link', 'budget', 'preview') + ['hash' => $this->hash($title, $budget, $preview)];
+                $this->upsert[$project_id] = compact('project_id', 'title', 'link', 'budget', 'description') + ['hash' => $this->hash($title, $budget, $description), 'published' => false];
             }
 
-            return $this->orders ? true : null;
+            return $this->upsert ? true : null;
         };
     }
 
@@ -51,7 +51,7 @@ class FlMixin
 
             foreach($xml->channel->item as $item)
             {
-                $link = trim($item->link); if(!preg_match('/\/projects\/(\d+)\//', $link, $m)) continue;
+                $link = trim($item->link); if(!preg_match('/\/projects\/(\d+)\//', $link, $m)) continue; $project_id = (int) $m[1];
 
                 $title = $this->clean($item->title); $budget = null;
 
@@ -60,14 +60,14 @@ class FlMixin
                     $title = trim($bm[1]); $budget = trim($bm[2]);
                 }
 
-                $preview = $this->clean($item->description);
+                $description = $this->clean($item->description);
 
-                if(!preg_match($pattern, $title.' '.$preview)) continue;
+                if(!preg_match($pattern, $title.' '.$description)) continue;
 
-                $this->orders[] = compact('title', 'link', 'budget', 'preview') + ['project_id' => (int) $m[1], 'hash' => $this->hash($title, $budget, $preview)];
+                $this->upsert[$project_id] = compact('project_id', 'title', 'link', 'budget', 'description') + ['hash' => $this->hash($title, $budget, $description), 'published' => false];
             }
 
-            return $this->orders ? true : null;
+            return $this->upsert ? true : null;
         };
     }
 
@@ -92,7 +92,7 @@ class FlMixin
                 $amount = (int) preg_replace('/\D+/', '', $bm[1]); if($amount < $this->client->config['criteria']['min_budget']) return null;
             }
 
-            return !$this->stopWords($order['title'].' '.$order['preview']) ? $order['link'] : null;
+            return !$this->stopWords($order['title'].' '.$order['description']) ? $order['link'] : null;
         };
     }
 
