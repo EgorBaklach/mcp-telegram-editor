@@ -2,9 +2,11 @@
 
 use Framework\Inflectors\AbstractInflector as BaseInflector;
 use Magistrale\Clients\AbstractClient;
+use Magistrale\Contracts\ObserverInterface;
 
 /**
  * @method object|null mixins(object $object)
+ * @method ObserverInterface|null observers(object $object)
  * @method callable|null operators(object $object)
  * @method AbstractClient|null sources(object $object)
  */

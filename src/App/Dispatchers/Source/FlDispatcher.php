@@ -1,6 +1,7 @@
 <?php namespace App\Dispatchers\Source;
 
 use App\Models\FlOrder;
+use RuntimeException;
 use Throwable;
 
 class FlDispatcher extends AbstractDispatcher
@@ -13,7 +14,7 @@ class FlDispatcher extends AbstractDispatcher
         {
             FlOrder::query()->where('created_at', '<', date('Y-m-d H:i:s', strtotime($this->client->config['criteria']['ttl'])))->delete();
 
-            if(!$this->callback->fetch('native') && !$this->callback->fetch('rss')) return false;
+            if(!$this->callback->fetch('native') && !$this->callback->fetch('rss')) throw new RuntimeException('FL.ru catalog and RSS fetch failed');
 
             foreach(FlOrder::ingest(array_reverse($this->upsert), 'project_id') as $id)
             {
@@ -30,7 +31,7 @@ class FlDispatcher extends AbstractDispatcher
         }
         catch(Throwable $e)
         {
-            $this->logger->error('FL sync failed: '.(string) $e); $this->results = [];
+            $this->logger->error('FL sync failed: '.(string) $e); $this->observer->update($e); $this->results = [];
         }
 
         return false;

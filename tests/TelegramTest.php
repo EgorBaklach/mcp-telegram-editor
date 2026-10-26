@@ -3,7 +3,7 @@
 use App\Dispatchers\Telegram\{DeleteByTextDispatcher, DeleteDispatcher, EditDispatcher, PublishDispatcher, SearchPostsDispatcher};
 use App\Models\TelegramPost;
 use App\Tools\Mcp\PingTool;
-use App\Tools\Telegram\{DeleteByTextTool, DeleteTool, EditTool, PublishTool, SearchPostsTool};
+use App\Tools\Telegram\{DeleteByTextTool, DeleteTool, EditTool, NotifyTool, PublishTool, SearchPostsTool};
 use GuzzleHttp\Psr7\Response;
 use Illuminate\Database\Capsule\Manager as Capsule;
 use InvalidArgumentException;
@@ -118,6 +118,7 @@ class TelegramTest extends TestCase
 
         foreach([
             fn() => $this->container->get(PublishTool::class)->publish(''),
+            fn() => $this->container->get(NotifyTool::class)->notify(''),
             fn() => $this->container->get(DeleteTool::class)->delete(0),
             fn() => $this->container->get(DeleteByTextTool::class)->delete(''),
             fn() => $this->container->get(EditTool::class)->edit(0, 'text'),
@@ -134,5 +135,23 @@ class TelegramTest extends TestCase
                 $this->assertNotEmpty($e->getMessage());
             }
         }
+    }
+
+    #[TestDox('NotifyTool и TelegramObserver: отправляют личные уведомления и карточки исключений админу через ObserverInflector')]
+    public function testNotifyToolAndTelegramObserver(): void
+    {
+        $mock = $this->createMock(TelegramClient::class);
+        $mock->expects($this->exactly(2))
+            ->method('notify')
+            ->willReturnOnConsecutiveCalls(
+                new Response(200, [], '{"ok":true}'),
+                null
+            );
+
+        $this->container->add(TelegramClient::class, $mock);
+        $tool = $this->container->get(NotifyTool::class);
+
+        $this->assertSame('success', $tool->notify('<b>Insight</b>'));
+        $this->assertSame('failed', $tool->notify('<b>Fail</b>'));
     }
 }

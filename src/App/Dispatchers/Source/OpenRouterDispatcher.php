@@ -2,6 +2,7 @@
 
 use App\Models\OpenRouterModel;
 use Magistrale\Contracts\CallbackInterface;
+use RuntimeException;
 use Throwable;
 
 class OpenRouterDispatcher extends AbstractDispatcher
@@ -17,7 +18,7 @@ class OpenRouterDispatcher extends AbstractDispatcher
 
         try
         {
-            if(!$response = $this->client->nat64() ?? $this->client->models()) return false;
+            if(!$response = $this->client->nat64() ?? $this->client->models()) throw new RuntimeException('OpenRouter API request failed');
 
             $result = json_decode($response->getBody(), true, 512, JSON_BIGINT_AS_STRING);
 
@@ -43,7 +44,7 @@ class OpenRouterDispatcher extends AbstractDispatcher
         }
         catch(Throwable $e)
         {
-            $this->logger->error('OpenRouter sync failed: '.(string) $e); $this->results = [];
+            $this->logger->error('OpenRouter sync failed: '.(string) $e); $this->observer->update($e); $this->results = [];
         }
 
         return false;

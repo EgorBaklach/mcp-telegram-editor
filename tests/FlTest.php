@@ -6,7 +6,7 @@ use App\Tools\Fl\{CheckNewOrdersTool, MarkOrderTool};
 use GuzzleHttp\Psr7\Response;
 use Illuminate\Database\Capsule\Manager as Capsule;
 use InvalidArgumentException;
-use Magistrale\Clients\FlClient;
+use Magistrale\Clients\{FlClient, TelegramClient};
 use PHPUnit\Framework\Attributes\TestDox;
 
 class FlTest extends TestCase
@@ -160,6 +160,10 @@ class FlTest extends TestCase
         $mock->method('project')->willReturn(new Response(200, [], $detail2001));
 
         $this->container->add(FlClient::class, $mock);
+
+        $tgMock = $this->createMock(TelegramClient::class);
+        $tgMock->expects($this->once())->method('notify')->willReturn(new Response(200, [], '{"ok":true}'));
+        $this->container->add(TelegramClient::class, $tgMock);
 
         $tool = $this->container->get(CheckNewOrdersTool::class);
         $ok = json_decode($tool->check(), true);

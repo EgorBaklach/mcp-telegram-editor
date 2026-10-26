@@ -7,7 +7,7 @@ use GuzzleHttp\Psr7\Response;
 use Illuminate\Database\Capsule\Manager as Capsule;
 use InvalidArgumentException;
 use League\Container\DefinitionContainerInterface;
-use Magistrale\Clients\OpenRouterClient;
+use Magistrale\Clients\{OpenRouterClient, TelegramClient};
 use PHPUnit\Framework\Attributes\TestDox;
 use Psr\Http\Message\ResponseInterface;
 use RuntimeException;
@@ -120,6 +120,10 @@ class OpenRouterTest extends TestCase
             );
 
         $this->container->add(OpenRouterClient::class, $mock);
+
+        $tgMock = $this->createMock(TelegramClient::class);
+        $tgMock->expects($this->once())->method('notify')->willReturn(new Response(200, [], '{"ok":true}'));
+        $this->container->add(TelegramClient::class, $tgMock);
 
         $checkTool = $this->container->get(CheckNewModelsTool::class);
         $okJson = json_decode($checkTool->check(), true);

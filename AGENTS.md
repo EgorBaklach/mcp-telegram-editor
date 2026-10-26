@@ -90,11 +90,11 @@ docker exec mcp-telegram-editor php bin/console.php source:monitor --openrouter=
 
 ## 🧪 Тестирование и Среда разработки (LSP/IDE)
 
-* Запуск всех тестов (`25 tests, 147 assertions`):
+* Запуск всех тестов (`26 tests, 155 assertions`):
   ```bash
   docker exec mcp-telegram-editor vendor/bin/phpunit --testdox
   ```
-* Покрытие включает: `ApplicationTest` (DI-контейнер и система миксинов), `HttpTest` (CORS и стратегии ответов), `DatabaseMigrationTest` (Eloquent и все сценарии `db:migrate`, включая защиту от невалидных целей), `TelegramTest` (все 6 инструментов, откат транзакций при сетевых сбоях и экранирование спецсимволов `ILIKE`), `OpenRouterTest` (`OpenRouterDispatcher`, дедупликация, NAT64 failover), `FlTest` (`FlDispatcher`, `FlOperator`, `FlMixin`, `CheckNewOrdersTool`, `MarkOrderTool`, дедупликация по `hash`, фильтрация мелких задач и RSS-фоллбек) и `SourceMonitorTest` (Redis-локи, жизненный цикл эфемерного `HOME`, коды возврата CLI для `--openrouter` и `--fl`).
+* Покрытие включает: `ApplicationTest` (DI-контейнер и система миксинов), `HttpTest` (CORS и стратегии ответов), `DatabaseMigrationTest` (Eloquent и все сценарии `db:migrate`, включая защиту от невалидных целей), `TelegramTest` (все 7 инструментов включая `notify`, `TelegramObserver`, откат транзакций при сетевых сбоях и экранирование спецсимволов `ILIKE`), `OpenRouterTest` (`OpenRouterDispatcher`, `ingest` через `ON CONFLICT DO NOTHING RETURNING`, NAT64 failover и уведомления `TelegramObserver`), `FlTest` (`FlDispatcher`, `FlOperator`, `FlMixin`, `CheckNewOrdersTool`, `MarkOrderTool`, дедупликация по `hash`, фильтрация мелких задач и RSS-фоллбек) и `SourceMonitorTest` (Redis-локи, жизненный цикл эфемерного `HOME`, уведомления об ошибках агента и коды возврата CLI для `--openrouter` и `--fl`).
 * Для помощи LSP/IDE (Intelephense) используется файл `_ide_helper.php`:
   * **Обязательное пополнение для миксинов**: При создании новых миксинов (`src/Magistrale/Mixins/*Mixin.php` и `src/App/Mixins/*Mixin.php`) агент обязан автоматически дополнять `_ide_helper.php` соответствующими `@method`-аннотациями на целевом классе, чтобы избежать предупреждений LSP (`Undefined method`).
   * В остальных случаях (вне системы миксинов) дополнять `_ide_helper.php` заглушками можно только по прямому запросу пользователя.
@@ -103,8 +103,8 @@ docker exec mcp-telegram-editor php bin/console.php source:monitor --openrouter=
 
 ## 🎯 Текущий статус разработки (Session State)
 
-* **Архитектура слоёв (`Framework` / `Magistrale` / `App`)**: Завершено строгое разделение инфраструктурного ядра `Magistrale` (0 зависимостей от `App`) и прикладного слоя `App`, стандартизировано именование `[Назначение][Слой]` и унифицированы инфлекторы (`AbstractInflector`) и колбэки (`OperableInterface` + `CallbackInterface`).
-* **Telegram Bot API 10.3**: Поддержана отправка и редактирование постов через `sendRichMessage` и `editMessageText` (`rich_message`).
+* **Архитектура слоёв (`Framework` / `Magistrale` / `App`)**: Завершено строгое разделение инфраструктурного ядра `Magistrale` (0 зависимостей от `App`) и прикладного слоя `App`, стандартизировано именование `[Назначение][Слой]`, унифицированы инфлекторы (`AbstractInflector`), колбэки (`OperableInterface` + `CallbackInterface`), наблюдатели (`ObserverInterface` + `ObservableInterface` + `ObserverInflector` + `AbstractObserver` / `TelegramObserver`) и пакетная вставка БД (`QueryMixin::ingest()` / `EloquentMixin::ingest()` через `INSERT ... ON CONFLICT DO NOTHING RETURNING`).
+* **Telegram Bot API 10.3 & Personal Notifications**: Поддержана отправка и редактирование постов через `sendRichMessage` и `editMessageText` (`rich_message`), а также личные уведомления админу (`TELEGRAM_ADMIN_ID`) об ошибках пайплайнов и аналитических инсайтах через `TelegramObserver` и MCP-инструмент `notify` (`NotifyTool`).
 * **OpenRouter Tracker & Source Monitor**: Реализован полный цикл мониторинга бесплатных моделей OpenRouter (`check_new_models`, `mark_published`), NAT64 IPv6 failover и оркестрация фонового запуска AI-агентов через `source:monitor --openrouter=agy` с Redis-блокировками.
 * **FL.ru Tracker & Source Monitor**: Полностью реализован пайплайн мониторинга заказов FL.ru (`fl_orders` с `PRIMARY KEY (project_id)`, `FlClient`, `FlOperator`, `FlMixin`, `Source\FlDispatcher`, `SourceMonitor\FlDispatcher`, инструменты `check_new_orders` и `mark_order`, CLI-вызов `source:monitor --fl=agy`).
 

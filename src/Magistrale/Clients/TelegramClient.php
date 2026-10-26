@@ -38,4 +38,16 @@ class TelegramClient extends AbstractClient
             ],
         ]);
     }
+
+    public function notify(string $text): ?ResponseInterface
+    {
+        return $this->resolve('post', 'sendRichMessage', [
+            'json' => [
+                'chat_id' => $this->config['admin_id'],
+                'rich_message' => [
+                    'html' => $text,
+                ],
+            ],
+        ]);
+    }
 }

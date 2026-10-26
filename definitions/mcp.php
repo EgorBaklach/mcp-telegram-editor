@@ -3,7 +3,7 @@
 use App\Tools\Fl\{CheckNewOrdersTool, MarkOrderTool};
 use App\Tools\Mcp\PingTool;
 use App\Tools\OpenRouter\{CheckNewModelsTool, MarkPublishedTool};
-use App\Tools\Telegram\{DeleteByTextTool, DeleteTool, EditTool, PublishTool, SearchPostsTool};
+use App\Tools\Telegram\{DeleteByTextTool, DeleteTool, EditTool, NotifyTool, PublishTool, SearchPostsTool};
 
 return [
     'server_name' => 'mcp-telegram-editor',
@@ -14,6 +14,7 @@ return [
     ],
     'tools' => [
         ['handler' => [PublishTool::class, 'publish'], 'name' => 'publish', 'description' => 'Publishes on the Telegram channel by post'],
+        ['handler' => [NotifyTool::class, 'notify'], 'name' => 'notify', 'description' => 'Sends a personal HTML notification or analytical insight directly to the admin in Telegram'],
         ['handler' => [PingTool::class, 'ping'], 'name' => 'ping', 'description' => 'Returns pong: {message}. Useful for connectivity tests.'],
         ['handler' => [DeleteTool::class, 'delete'], 'name' => 'delete', 'description' => 'Deletes a message from the Telegram channel by message ID'],
         ['handler' => [DeleteByTextTool::class, 'delete'], 'name' => 'delete_by_text', 'description' => 'Deletes a message from the Telegram channel by searching its text content in DB'],
