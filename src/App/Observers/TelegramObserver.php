@@ -9,9 +9,7 @@ class TelegramObserver extends AbstractObserver
     {
         try
         {
-            if(!$this->callback->observer('notify', $payload)) throw new RuntimeException('Telegram notify failed');
-
-            return true;
+            if(!$this->callback->observer('notify', $payload)) throw new RuntimeException('Telegram notify failed'); return true;
         }
         catch(Throwable $e)
         {

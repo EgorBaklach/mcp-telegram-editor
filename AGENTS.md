@@ -90,11 +90,11 @@ docker exec mcp-telegram-editor php bin/console.php source:monitor --openrouter=
 
 ## 🧪 Тестирование и Среда разработки (LSP/IDE)
 
-* Запуск всех тестов (`26 tests, 155 assertions`):
+* Запуск всех тестов (`26 tests, 152 assertions`):
   ```bash
   docker exec mcp-telegram-editor vendor/bin/phpunit --testdox
   ```
-* Покрытие включает: `ApplicationTest` (DI-контейнер и система миксинов), `HttpTest` (CORS и стратегии ответов), `DatabaseMigrationTest` (Eloquent и все сценарии `db:migrate`, включая защиту от невалидных целей), `TelegramTest` (все 7 инструментов включая `notify`, `TelegramObserver`, откат транзакций при сетевых сбоях и экранирование спецсимволов `ILIKE`), `OpenRouterTest` (`OpenRouterDispatcher`, `ingest` через `ON CONFLICT DO NOTHING RETURNING`, NAT64 failover и уведомления `TelegramObserver`), `FlTest` (`FlDispatcher`, `FlOperator`, `FlMixin`, `CheckNewOrdersTool`, `MarkOrderTool`, дедупликация по `hash`, фильтрация мелких задач и RSS-фоллбек) и `SourceMonitorTest` (Redis-локи, жизненный цикл эфемерного `HOME`, уведомления об ошибках агента и коды возврата CLI для `--openrouter` и `--fl`).
+* Покрытие включает: `ApplicationTest` (DI-контейнер и система миксинов), `HttpTest` (CORS и стратегии ответов), `DatabaseMigrationTest` (Eloquent и все сценарии `db:migrate`, включая защиту от невалидных целей), `TelegramTest` (все 7 инструментов включая `notify`, `TelegramObserver`, откат транзакций при сетевых сбоях и экранирование спецсимволов `ILIKE`), `OpenRouterTest` (`OpenRouterDispatcher`, `ingest` через `ON CONFLICT DO NOTHING RETURNING`, NAT64 failover и живые уведомления `TelegramObserver`), `FlTest` (`FlDispatcher`, `FlOperator`, `FlMixin`, `CheckNewOrdersTool`, `MarkOrderTool`, дедупликация по `hash`, фильтрация мелких задач, RSS-фоллбек и живые уведомления `TelegramObserver` о перехваченных HTTP-сбоях) и `SourceMonitorTest` (Redis-локи, жизненный цикл эфемерного `HOME`, уведомления об ошибках агента и коды возврата CLI для `--openrouter` и `--fl`).
 * Для помощи LSP/IDE (Intelephense) используется файл `_ide_helper.php`:
   * **Обязательное пополнение для миксинов**: При создании новых миксинов (`src/Magistrale/Mixins/*Mixin.php` и `src/App/Mixins/*Mixin.php`) агент обязан автоматически дополнять `_ide_helper.php` соответствующими `@method`-аннотациями на целевом классе, чтобы избежать предупреждений LSP (`Undefined method`).
   * В остальных случаях (вне системы миксинов) дополнять `_ide_helper.php` заглушками можно только по прямому запросу пользователя.

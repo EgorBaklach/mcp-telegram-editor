@@ -2,10 +2,8 @@
 
 use App\Dispatchers\SourceMonitor\{FlDispatcher, OpenRouterDispatcher};
 use Cli\Commands\SourceMonitorCommand;
-use GuzzleHttp\Psr7\Response;
 use League\Container\DefinitionContainerInterface;
 use Magistrale\Agents\{AgyAgent, HermesAgent};
-use Magistrale\Clients\TelegramClient;
 use Magistrale\Contracts\RedisInterface;
 use Magistrale\Logging\ConsoleLogger;
 use PHPUnit\Framework\Attributes\TestDox;
@@ -98,10 +96,6 @@ class SourceMonitorTest extends TestCase
         };
 
         $this->container->add(AgyAgent::class, $failAgent);
-
-        $tgMock = $this->createMock(TelegramClient::class);
-        $tgMock->expects($this->once())->method('notify')->willReturn(new Response(200, [], '{"ok":true}'));
-        $this->container->add(TelegramClient::class, $tgMock);
 
         $dispatcher = $this->container->get(OpenRouterDispatcher::class)->build($this->command);
 

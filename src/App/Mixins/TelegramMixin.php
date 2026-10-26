@@ -1,8 +1,8 @@
 <?php namespace App\Mixins;
 
 use App\Dispatchers\Telegram\AbstractDispatcher;
+use App\Observers\AbstractObserver;
 use Closure;
-use Throwable;
 
 class TelegramMixin
 {
@@ -34,9 +34,17 @@ class TelegramMixin
     {
         return function(mixed $payload = null): string
         {
-            return $payload instanceof Throwable
-                ? '<b>⚠️ '.$payload::class.' ['.basename($payload->getFile()).':'.$payload->getLine().']</b>'.PHP_EOL.'<pre>'.htmlspecialchars($payload->getMessage(), ENT_QUOTES | ENT_HTML5, 'UTF-8').'</pre>'
-                : (string) $payload;
+            /** @var AbstractObserver $this */
+
+            foreach($this->client->config['templates'] as $type => $template)
+            {
+                if($payload instanceof $type)
+                {
+                    return sprintf($template, $payload::class, basename($payload->getFile()), $payload->getLine(), htmlspecialchars($payload->getMessage(), ENT_QUOTES | ENT_HTML5, 'UTF-8'));
+                }
+            }
+
+            return (string) $payload;
         };
     }
 }

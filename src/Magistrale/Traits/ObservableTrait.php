@@ -4,7 +4,7 @@ use Magistrale\Contracts\ObserverInterface;
 
 trait ObservableTrait
 {
-    public ObserverInterface $observer;
+    public ?ObserverInterface $observer = null;
 
     public function setObserver(ObserverInterface $observer): void
     {

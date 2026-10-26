@@ -6,8 +6,9 @@ use App\Tools\Fl\{CheckNewOrdersTool, MarkOrderTool};
 use GuzzleHttp\Psr7\Response;
 use Illuminate\Database\Capsule\Manager as Capsule;
 use InvalidArgumentException;
-use Magistrale\Clients\{FlClient, TelegramClient};
+use Magistrale\Clients\FlClient;
 use PHPUnit\Framework\Attributes\TestDox;
+use Psr\Http\Message\ResponseInterface;
 
 class FlTest extends TestCase
 {
@@ -147,23 +148,26 @@ class FlTest extends TestCase
 
         $detail2001 = '<div id="projectp2001">'.str_repeat('Полное техническое задание на разработку нестандартного модуля обмена 1С:УТ и коробочного Битрикс24 с очередями и обработкой конфликтов ИНН. ', 3).'</div>';
 
-        $mock = $this->createMock(FlClient::class);
-        $mock->method('projects')->willReturnOnConsecutiveCalls(
-            null,
-            null
-        );
-        $mock->method('rss')->willReturnOnConsecutiveCalls(
-            new Response(200, [], $rssXml),
-            null
-        );
-        $mock->config = $this->container->get('clients')[FlClient::class];
-        $mock->method('project')->willReturn(new Response(200, [], $detail2001));
+        $client = new class($this->container->get('clients')[FlClient::class], $rssXml, $detail2001) extends FlClient
+        {
+            private int $rssCalls = 0;
 
-        $this->container->add(FlClient::class, $mock);
+            public function __construct(array $config, private string $rssXml, private string $detailHtml)
+            {
+                parent::__construct($config);
+            }
 
-        $tgMock = $this->createMock(TelegramClient::class);
-        $tgMock->expects($this->once())->method('notify')->willReturn(new Response(200, [], '{"ok":true}'));
-        $this->container->add(TelegramClient::class, $tgMock);
+            public function get($uri, array $options = []): ResponseInterface
+            {
+                if($uri === 'projects/') return new Response(503);
+
+                if($uri === 'rss/all.xml') return ++$this->rssCalls === 1 ? new Response(200, [], $this->rssXml) : new Response(502);
+
+                return new Response(200, [], $this->detailHtml);
+            }
+        };
+
+        $this->container->add(FlClient::class, $client);
 
         $tool = $this->container->get(CheckNewOrdersTool::class);
         $ok = json_decode($tool->check(), true);

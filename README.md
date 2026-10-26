@@ -2,7 +2,7 @@
 
 ИИ-ориентированный MCP-сервер (Model Context Protocol) на базе PHP-фреймворка **Microbe**, предназначенный для автоматизации управления Telegram-каналами и автономного мониторинга внешних источников данных (OpenRouter, FL.ru) через AI-агентов.
 
-Проект спроектирован с учётом жёстких лимитов памяти (до `128M`), принципов SOLID, лаконичности кода и 100% покрытия бизнес-логики тестами (`25 tests, 147 assertions`).
+Проект спроектирован с учётом жёстких лимитов памяти (до `128M`), принципов SOLID, лаконичности кода и 100% покрытия бизнес-логики тестами (`26 tests, 152 assertions`).
 
 ---
 
@@ -12,14 +12,19 @@
 
 * **Слои (`Framework` / `Magistrale` / `App`)**:
   * `src/Framework/` — базовое ядро фреймворка Microbe (HTTP/CLI-рантайм, роутинг, провайдеры, инфлекторы).
-  * `src/Magistrale/` — переиспользуемый инфраструктурный слой (клиенты API, драйверы AI-агентов, система миграций, Redis-локи, миксины и операторы; **0 зависимостей от `App\`**).
-  * `src/App/` — прикладная бизнес-логика проекта (диспетчеры Telegram и источников, модели Eloquent, прикладные миксины/операторы, MCP-инструменты).
-* **DI-Контейнер (`League\Container`)**: Полная поддержка auto-wiring, ленивых сервис-провайдеров и инфлекторов (`MixinInflector`, `OperatorInflector`).
-* **Модульные определения (`definitions/*.php`)**: Все конфигурации (`agents`, `clients`, `commands`, `database`, `dependencies`, `mcp`, `mixins`, `operators`, `redis`, `sources`) разнесены по отдельным файлам в директории `definitions/` и автоматически собираются в `config/definitions.php`.
-* **Система миксинов и операторов (`MacroableInterface` & `OperableInterface`)**: Технические преобразования и колбэки вынесены в миксины (`*Mixin.php`) и операторы (`*Operator.php`), подключаемые автоматически через `MixinInflector` и `OperatorInflector`.
-* **База данных**: Автономный Eloquent (`Capsule\Manager`) поверх PostgreSQL.
+  * `src/Magistrale/` — переиспользуемый инфраструктурный слой (клиенты API, драйверы AI-агентов, система миграций, Redis-локи, миксины, колбэки, наблюдатели и операторы; **0 зависимостей от `App\`**).
+  * `src/App/` — прикладная бизнес-логика проекта (диспетчеры Telegram и источников, наблюдатели `TelegramObserver`, модели Eloquent, прикладные миксины/операторы, MCP-инструменты).
+* **DI-Контейнер (`League\Container`)**: Полная поддержка auto-wiring, ленивых сервис-провайдеров и инфлекторов (`MixinInflector`, `CallbackInflector`, `ObserverInflector`, `SourceInflector`).
+* **Модульные определения (`definitions/*.php`)**: Все конфигурации (`agents`, `clients`, `commands`, `database`, `dependencies`, `mcp`, `mixins`, `observers`, `operators`, `redis`, `sources`) разнесены по отдельным файлам в директории `definitions/` и автоматически собираются в `config/definitions.php`.
+* **Трёхуровневая формула декомпозиции (`MacroableInterface` → `OperableInterface` → `Abstract*`)**:
+  1. **Миксины (`*Mixin.php`)** — работа с «сырыми» данными (HTML/XML/JSON, регулярные выражения, экранирование, `ingest()`, `prepare()`).
+  2. **Колбэки и Операторы (`CallbackInterface` / `*Operator.php`)** — операционные конвейеры (`pipe`), связывающие трансформации миксинов с сетевыми вызовами клиентов.
+  3. **Абстракции и Классы (`Abstract*`, `*Dispatcher`, `*Observer`)** — общий конструктор и `setCallback()` вынесены в `Abstract*`, а дочерние классы исполняют конвейер в едином контуре `try / catch(Throwable $e)` с уведомлением наблюдателя (`$this->observer->update($e)`).
+* **Система наблюдателей (`ObservableInterface` & `ObserverInterface`)**: Инфлектор `ObserverInflector` автоматически подключает `TelegramObserver` к клиентам источников (`FlClient`, `OpenRouterClient`), диспетчерам синхронизации/мониторинга и инструменту `NotifyTool`.
+* **База данных**: Автономный Eloquent (`Capsule\Manager`) поверх PostgreSQL с пакетной идемпотентной вставкой `QueryMixin::ingest()` / `EloquentMixin::ingest()` (`INSERT ... ON CONFLICT DO NOTHING RETURNING`).
 * **Сетевые клиенты (`Magistrale\Clients`)**:
-  * `TelegramClient` — обёртка над `GuzzleHttp\Client` с поддержкой Telegram Bot API 10.3 (`sendRichMessage` и `editMessageText` с `rich_message`) и SOCKS5-проксирования.
+  * `AbstractClient` — базовый клиент поверх `GuzzleHttp\Client` (`ObservableInterface`), автоматически перехватывающий сетевые сбои и не-200 ответы в `resolve()` с отправкой уведомления в `TelegramObserver` и возвратом `null` для продолжения работы пайплайна (переключения на фоллбек).
+  * `TelegramClient` — поддержка Telegram Bot API 10.3 (`sendRichMessage` и `editMessageText` с `rich_message`), личных уведомлений админу (`notify()`) и SOCKS5-проксирования.
   * `OpenRouterClient` — HTTP-клиент с автоматическим переключением (failover) по публичным NAT64 IPv6-шлюзам.
   * `FlClient` — HTTP-клиент для работы с биржей FL.ru (сессионный AJAX-фильтр проектов с cookie-jar и автоматическим фоллбэком на RSS).
   * `RedisProvider` + `RedisMixin` — легковесный клиент поверх нативного TCP-сокета (протокол RESP) для атомарных распределённых блокировок (`SET NX EX` / `DEL`).
@@ -33,11 +38,12 @@
 |---|---|---|---|
 | `ping` | `message` | `string` | Проверка связи с MCP-сервером. Возвращает `'pong: {message}'`. |
 | `publish` | `post` | `string` | Публикует Rich HTML-пост в Telegram-канал (`sendRichMessage`). Сохраняет `message_id` и текст в БД. |
+| `notify` | `message` | `string` | Отправляет личное Rich HTML-уведомление администратору (`TELEGRAM_ADMIN_ID`) через `TelegramObserver`. |
 | `delete` | `messageId` | `integer` | Удаляет сообщение из Telegram-канала по его идентификатору и очищает запись в БД. |
 | `delete_by_text` | `text` | `string` | Находит пост в БД по подстроке текста (регистронезависимый `ILIKE`) и удаляет его из Telegram-канала и БД. |
 | `edit` | `messageId`, `text` | `integer`, `string` | Редактирует текст опубликованного сообщения в Telegram (`editMessageText` с `rich_message`) и синхронизирует его в локальной БД (`updateOrCreate`). |
 | `search_posts` | `query` | `string` | Ищет опубликованные посты в локальной БД по ключевому слову/подстроке и возвращает JSON со списком совпадений (`message_id`, `text`). |
-| `check_new_models` | — | — | Синхронизирует бесплатные модели OpenRouter с БД и возвращает JSON с данными новых неопубликованных моделей (`supported_parameters`, `has_reasoning` и др.). |
+| `check_new_models` | — | — | Синхронизирует бесплатные модели OpenRouter с БД и возвращает JSON с данными новых неопубликованных моделей. |
 | `mark_published` | `modelId` | `string` | Помечает модель OpenRouter как опубликованную (`published = true`) в БД по её `model_id` после выхода поста. |
 | `check_new_orders` | — | — | Синхронизирует заказы FL.ru с БД, отсеивает мелкие задачи/стоп-слова и возвращает JSON с новыми крупными заказами (`published IS NULL`). |
 | `mark_order` | `projectId`, `published` | `integer`, `bool` | Помечает заказ FL.ru в БД по его `project_id` как опубликованный (`true`) или отклонённый (`false`). |
@@ -51,6 +57,7 @@
 ```php
 'tools' => [
     ['handler' => [PublishTool::class, 'publish'],       'name' => 'publish',          'description' => '...'],
+    ['handler' => [NotifyTool::class, 'notify'],         'name' => 'notify',           'description' => '...'],
     ['handler' => [PingTool::class, 'ping'],             'name' => 'ping',             'description' => '...'],
     ['handler' => [DeleteTool::class, 'delete'],         'name' => 'delete',           'description' => '...'],
     ['handler' => [DeleteByTextTool::class, 'delete'],   'name' => 'delete_by_text',   'description' => '...'],
@@ -63,13 +70,20 @@
 ],
 ```
 
-`McpProvider` читает это определение и автоматически регистрирует каждый тул в `mcp/sdk`, разрешая зависимости класса через DI-контейнер.
+`McpServiceProvider` читает это определение и автоматически регистрирует каждый тул в `mcp/sdk`, разрешая зависимости класса через DI-контейнер.
 
 ---
 
-## ⚙️ Диспетчеры, Операторы и Миксины
+## ⚙️ Диспетчеры, Наблюдатели, Операторы и Миксины
 
-Вся бизнес-логика разделена на диспетчеры, реализующие `Magistrale\Contracts\DispatcherInterface`.
+Вся бизнес-логика разделена на диспетчеры (`DispatcherInterface`) и наблюдатели (`ObserverInterface`).
+
+### 🔔 Наблюдатели (`App\Observers` + `TelegramMixin::prepare()`)
+
+| Класс | Описание |
+|---|---|
+| `AbstractObserver` | Базовый класс наблюдателя (`ObserverInterface`, `MacroableInterface`, `OperableInterface`). Регистрирует конвейер `observer.notify` (`prepare` → `client->notify`). |
+| `TelegramObserver` | Отправляет карточки исключений по шаблонам из `definitions/clients.php` (`⚠️ GuzzleException` с пометкой о продолжении работы пайпа, `❌ Throwable` при фатальном сбое) и прямые уведомления (`NotifyTool`) в личный чат администратора (`TELEGRAM_ADMIN_ID`). |
 
 ### 📦 Telegram-диспетчеры (`App\Dispatchers\Telegram` + `TelegramMixin`)
 
@@ -86,18 +100,18 @@
 
 | Диспетчер | Миксин / Оператор | Описание |
 |---|---|---|
-| `OpenRouterDispatcher` | `OpenRouterMixin` | Запрашивает список моделей OpenRouter, фильтрует бесплатные (`free()`), сохраняет новые в `openrouter_models` в хронологическом порядке (`array_reverse`), дозаполняет `released_at` для существующих и возвращает список новых моделей. |
-| `FlDispatcher` | `FlMixin`, `FlOperator` | Получает список заказов с FL.ru через AJAX-фильтр (`catalog()`) или RSS-фоллбэк (`rss()`), дедуплицирует по `project_id` и `hash`, отсеивает мелкие задачи и стоп-слова (`preview()`, `detail()`), догружает полное ТЗ и возвращает пачку кандидатов (`published IS NULL`). |
+| `OpenRouterDispatcher` | `EloquentMixin::ingest()` | Запрашивает список моделей OpenRouter (`nat64()` с фоллбеком на `models()`), фильтрует бесплатные через колбэк `openrouter.free` и атомарно вставляет новые модели через `ON CONFLICT DO NOTHING RETURNING`. |
+| `FlDispatcher` | `FlMixin`, `FlOperator` | Получает список заказов с FL.ru через AJAX-фильтр (`fetch.native`) или RSS-фоллбэк (`fetch.rss`), дедуплицирует через `FlOrder::ingest()`, отсеивает мелкие задачи и стоп-слова (`fetch.description`), догружает полное ТЗ и обновляет кандидатов (`published IS NULL`). |
 
 ### 📡 Диспетчеры мониторинга источников (`App\Dispatchers\SourceMonitor`)
 
 | Диспетчер | CLI-флаг | Описание |
 |---|---|---|
-| `AbstractDispatcher` | — | Захватывает атомарный Redis-лок (`static::lock`), разрешает драйвер AI-агента (`agy` или `hermes`), подготавливает изолированное окружение, запускает pipeline `source-monitor` и гарантированно очищает временные файлы и Redis-лок в `finally`. |
+| `AbstractDispatcher` | — | Захватывает атомарный Redis-лок (`static::lock`), разрешает драйвер AI-агента (`agy` или `hermes`), запускает pipeline `source-monitor`, уведомляет `TelegramObserver` при сбое и гарантированно очищает временные файлы и Redis-лок в `finally`. |
 | `OpenRouterDispatcher` | `--openrouter=agent` | Запускает мониторинг бесплатных моделей OpenRouter (`lock:source:openrouter`) через указанного AI-агента. |
 | `FlDispatcher` | `--fl=agent` | Запускает мониторинг и отбор заказов FL.ru (`lock:source:fl`) через указанного AI-агента. |
 
-### 🗄️ Миграционные диспетчеры (`Magistrale\Dispatchers\Migration` + `MigrateOperator` + `MigrationMixin`)
+### 🗄️ Миграционные диспетчеры (`Magistrale\Dispatchers\Migration` + `MigrateOperator`)
 
 | Диспетчер | CLI-флаг | Описание |
 |---|---|---|
@@ -154,9 +168,9 @@ docker exec mcp-telegram-editor php bin/console.php source:monitor --openrouter=
 
 ---
 
-## 🧪 Тестирование
+## 🧪 Тестирование и верификация Наблюдателя (`TelegramObserver`)
 
-Все тесты запускаются внутри контейнера через PHPUnit (`25 tests, 147 assertions`):
+Все тесты запускаются внутри контейнера через PHPUnit (`26 tests, 152 assertions`):
 
 ```bash
 docker exec mcp-telegram-editor vendor/bin/phpunit --testdox
@@ -166,11 +180,24 @@ docker exec mcp-telegram-editor vendor/bin/phpunit --testdox
 |---|---|
 | `Application` | Инициализация DI-контейнера, инфлекторов миксинов (`MixinInflector`) и разрешение всех сервисов. |
 | `Http` | Обработка CORS preflight (`McpController::options`) и установка заголовков в `McpJsonStrategy`, `CorsDecoratorMiddleware`, `CredentialsMiddleware` и `ProfilerMiddleware`. |
-| `DatabaseMigration` | Подключение к PostgreSQL, `UpDispatcher`, `DownDispatcher` (по батчам, по ID, `all`, защита от невалидных целей) и `CreateDispatcher` (`MigrationMixin`). |
-| `Telegram` | Все диспетчеры и MCP-инструменты Telegram (`Publish`, `Edit`, `Delete`, `DeleteByText`, `SearchPosts`), откат транзакций при сбое API и экранирование `%`/`_` в `ILIKE` (`TelegramMixin`). |
-| `OpenRouter` | `OpenRouterDispatcher` (`OpenRouterMixin`), `CheckNewModelsTool`, `MarkPublishedTool` и автоматическое переключение `OpenRouterClient` на резервный NAT64-шлюз. |
+| `DatabaseMigration` | Подключение к PostgreSQL, `UpDispatcher`, `DownDispatcher` (по батчам, по ID, `all`, защита от невалидных целей) и `CreateDispatcher` (`MigrateOperator`). |
+| `Telegram` | Все диспетчеры и MCP-инструменты Telegram (`Publish`, `Notify`, `Edit`, `Delete`, `DeleteByText`, `SearchPosts`), откат транзакций при сбое API и экранирование `%`/`_` в `ILIKE` (`TelegramMixin`). |
+| `OpenRouter` | `OpenRouterDispatcher` (`EloquentMixin::ingest()`), `CheckNewModelsTool`, `MarkPublishedTool` и автоматическое переключение `OpenRouterClient` на резервный NAT64-шлюз. |
 | `Fl` | `FlDispatcher`, `FlOperator`, `FlMixin`, дедупликация по `project_id` и `hash`, отсев мелких задач/стоп-слов, фоллбэк на RSS, `CheckNewOrdersTool` и `MarkOrderTool`. |
 | `SourceMonitor` | Атомарные блокировки `Redis` (`SET NX EX` / `DEL`), жизненный цикл эфемерного `HOME` в `AgyAgent`, пропуск дублей по локу, очистка в `finally` и коды возврата `SourceMonitorCommand` (`--openrouter` и `--fl`). |
+
+### Порядок проверки `TelegramObserver` в личном чате администратора
+
+При запуске `vendor/bin/phpunit --testdox` публичный канал (`TELEGRAM_CHAT_ID`) полностью изолирован моками, а `TelegramObserver` и `NotifyTool` доставляют в личный чат с ботом (`TELEGRAM_ADMIN_ID`) полный набор из **7 боевых уведомлений**, покрывающих все сценарии работы наблюдателя:
+
+1. **`⚠️ GuzzleHttp\Exception\TransferException [AbstractClient.php:26]`** (`HTTP 503: GET projects/`) — перехват сбоя каталога FL.ru с продолжением работы пайпа (`fetch.native` → `fetch.rss`).
+2. **`⚠️ GuzzleHttp\Exception\TransferException [AbstractClient.php:26]`** (`HTTP 503: GET projects/`) — перехват сбоя каталога FL.ru на сценарии полного отказа.
+3. **`⚠️ GuzzleHttp\Exception\TransferException [AbstractClient.php:26]`** (`HTTP 502: GET rss/all.xml`) — перехват сбоя RSS-ленты FL.ru.
+4. **`❌ RuntimeException [FlDispatcher.php:17]`** (`FL.ru catalog and RSS fetch failed`) — фатальная остановка пайплайна `FlDispatcher` при отказе обоих источников.
+5. **`❌ RuntimeException [OpenRouterDispatcher.php:21]`** (`OpenRouter API request failed`) — фатальная остановка пайплайна `OpenRouterDispatcher`.
+6. **`⚠️ GuzzleHttp\Exception\ConnectException [OpenRouterTest.php:164]`** (`cURL error 28: Operation timed out...`) — перехват таймаута на первом шлюзе NAT64 с автоматическим переключением на резервный IPv6-шлюз.
+7. **`❌ Symfony\Component\Process\Exception\ProcessFailedException [AgyAgent.php:29]`** — фатальная ошибка дочернего процесса AI-агента в `SourceMonitor\OpenRouterDispatcher`.
+8. **`✅ NotifyTool & TelegramObserver`** — прямое аналитическое Rich HTML-уведомление, отправленное через MCP-инструмент `notify`.
 
 ---
 
@@ -184,7 +211,7 @@ docker exec mcp-telegram-editor vendor/bin/phpunit --testdox
 ├── config/                     # Агрегаторы определений, провайдеров и инфлекторов
 ├── database/
 │   └── migrations/             # Файлы миграций БД
-├── definitions/                # Модульные конфигурации (agents, clients, commands, database, dependencies, mcp, mixins, operators, redis, sources)
+├── definitions/                # Модульные конфигурации (agents, clients, commands, database, dependencies, mcp, mixins, observers, operators, redis, sources)
 ├── docs/
 │   └── CODE_STYLE.md           # Правила архитектуры и форматирования кода
 ├── routes/                     # Маршруты HTTP
@@ -195,31 +222,33 @@ docker exec mcp-telegram-editor vendor/bin/phpunit --testdox
 │   │   │   ├── Source/         # AbstractDispatcher, OpenRouterDispatcher, FlDispatcher
 │   │   │   ├── SourceMonitor/  # AbstractDispatcher, OpenRouterDispatcher, FlDispatcher
 │   │   │   └── Telegram/       # AbstractDispatcher, PublishDispatcher, DeleteDispatcher, DeleteByTextDispatcher, EditDispatcher, SearchPostsDispatcher
+│   │   ├── Inflectors/         # SourceInflector
 │   │   ├── Middlewares/        # CorsDecoratorMiddleware, CredentialsMiddleware, ProfilerMiddleware
-│   │   ├── Mixins/             # OpenRouterMixin, FlMixin, TelegramMixin
-│   │   ├── Models/             # TelegramPost, OpenRouterModel, FlOrder
+│   │   ├── Mixins/             # FlMixin, TelegramMixin
+│   │   ├── Models/             # TelegramPost, OpenRouterModel, FlOrder, TestRecord
+│   │   ├── Observers/          # AbstractObserver, TelegramObserver
 │   │   ├── Operators/          # FlOperator
 │   │   ├── Strategies/         # McpJsonStrategy
 │   │   └── Tools/              # MCP-инструменты (Mcp/, Telegram/, OpenRouter/, Fl/)
 │   ├── Cli/
 │   │   ├── Commands/           # AbstractCommand, HelloWorldCommand, MigrateCommand, SourceMonitorCommand
 │   │   ├── Console/            # SymfonyConsole
-│   │   └── Providers/          # ConsoleProvider
+│   │   └── Providers/          # ServiceProvider
 │   ├── Framework/              # Ядро фреймворка Microbe
 │   └── Magistrale/
 │       ├── Agents/             # Драйверы AI-агентов (AbstractAgent, AgyAgent, HermesAgent)
-│       ├── Callbacks/          # OperableTrait
-│       ├── Clients/            # TelegramClient, OpenRouterClient, FlClient
+│       ├── Clients/            # AbstractClient, TelegramClient, OpenRouterClient, FlClient
 │       ├── Contracts/          # Интерфейсы инфраструктуры
 │       ├── Dispatchers/
 │       │   └── Migration/      # AbstractDispatcher, UpDispatcher, DownDispatcher, CreateDispatcher
-│       ├── Inflectors/         # AbstractInflector, MixinInflector, OperatorInflector
+│       ├── Inflectors/         # AbstractInflector, CallbackInflector, MixinInflector, ObserverInflector
 │       ├── Logging/            # ConsoleLogger, StderrLogger
-│       ├── Mixins/             # CommandMixin, MigrationMixin, RedisMixin
+│       ├── Mixins/             # CommandMixin, EloquentMixin, QueryMixin, RedisMixin
 │       ├── Models/             # Migration
-│       ├── Operators/          # MigrateOperator
-│       └── Providers/          # DatabaseProvider, McpProvider, RedisProvider, SourceProvider, TelegramProvider
-├── tests/                      # Тесты PHPUnit (25 тестов, 147 проверок)
+│       ├── Operators/          # AbstractOperator, MigrateOperator
+│       ├── Providers/          # CallbackProvider, ClientProvider, DatabaseServiceProvider, McpServiceProvider, RedisProvider
+│       └── Traits/             # MacroableTrait, ObservableTrait, OperableTrait
+├── tests/                      # Тесты PHPUnit (26 тестов, 152 проверки)
 ├── _ide_helper.php             # Стабы для IDE (Intelephense)
 ├── docker-compose.yml
 └── .env.example

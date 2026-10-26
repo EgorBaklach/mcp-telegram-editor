@@ -38,6 +38,7 @@ class TelegramTest extends TestCase
     public function testPublishLifecycleAndErrorHandling(): void
     {
         $mock = $this->createMock(TelegramClient::class);
+        $mock->config = $this->container->get('clients')[TelegramClient::class];
         $mock->expects($this->exactly(2))
             ->method('publish')
             ->willReturnOnConsecutiveCalls(
@@ -58,6 +59,7 @@ class TelegramTest extends TestCase
     public function testEditDispatcherUpdatesAndCreatesRecords(): void
     {
         $mock = $this->createMock(TelegramClient::class);
+        $mock->config = $this->container->get('clients')[TelegramClient::class];
         $mock->expects($this->exactly(2))
             ->method('edit')
             ->willReturnCallback(function(array $payload): Response
@@ -140,18 +142,15 @@ class TelegramTest extends TestCase
     #[TestDox('NotifyTool и TelegramObserver: отправляют личные уведомления и карточки исключений админу через ObserverInflector')]
     public function testNotifyToolAndTelegramObserver(): void
     {
+        $tool = $this->container->get(NotifyTool::class);
+        $this->assertSame('success', $tool->notify('<b>✅ NotifyTool & TelegramObserver</b>'.PHP_EOL.'<i>Прямое Rich HTML уведомление доставлено при прогоне PHPUnit.</i>'));
+
+        $this->bootContainer();
         $mock = $this->createMock(TelegramClient::class);
-        $mock->expects($this->exactly(2))
-            ->method('notify')
-            ->willReturnOnConsecutiveCalls(
-                new Response(200, [], '{"ok":true}'),
-                null
-            );
+        $mock->config = $this->container->get('clients')[TelegramClient::class];
+        $mock->expects($this->once())->method('notify')->willReturn(null);
 
         $this->container->add(TelegramClient::class, $mock);
-        $tool = $this->container->get(NotifyTool::class);
-
-        $this->assertSame('success', $tool->notify('<b>Insight</b>'));
-        $this->assertSame('failed', $tool->notify('<b>Fail</b>'));
+        $this->assertSame('failed', $this->container->get(NotifyTool::class)->notify('<b>Fail</b>'));
     }
 }
