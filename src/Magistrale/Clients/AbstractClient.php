@@ -11,7 +11,6 @@ abstract class AbstractClient extends Client implements ClientInterface, Observa
 {
     use ObservableTrait;
 
-
     public function __construct(public array $config = [])
     {
         parent::__construct($config);
