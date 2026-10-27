@@ -5,6 +5,8 @@
 !/.agents/skills/developer-profile/
 !/.agents/skills/source-monitor/
 !/.agents/skills/telegram_editor_strategy/
+/storage/*
+!/storage/app/
 /.backup/*
 /vendor
 /logs
