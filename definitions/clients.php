@@ -1,10 +1,10 @@
 <?php
 
 use GuzzleHttp\Exception\GuzzleException;
-use Magistrale\Clients\{FlClient, OpenRouterClient, TelegramClient};
+use Magistrale\Clients\{FLClient, HHClient, OpenRouterClient, TelegramClient};
 
 return [
-    FlClient::class => [
+    FLClient::class => [
         'base_uri' => 'https://www.fl.ru/',
         'timeout' => 10.0,
         'cookies' => true,
@@ -53,6 +53,28 @@ return [
                 'всплывающее окно', 'объединение дублирующих карточек', 'долго грузится', 'adguard',
                 'репетитор', 'ученик', 'курсов', 'диплом', 'лидогенерац',
             ],
+        ],
+    ],
+    HHClient::class => [
+        'base_uri' => 'https://ekaterinburg.hh.ru/',
+        'proxy' => getenv('HH_PROXY') ?: null,
+        'timeout' => 10.0,
+        'cookies' => true,
+        'headers' => [
+            'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
+            'Accept-Language' => 'ru-RU,ru;q=0.9,en-US;q=0.8,en;q=0.7',
+        ],
+        'filter' => [
+            'text' => 'php OR laravel OR bitrix OR битрикс',
+            'professional_role' => [96, 104],
+            'order_by' => 'publication_time',
+            'enable_snippets' => 'true',
+            'items_on_page' => 100,
+        ],
+        'criteria' => [
+            'ttl' => '-30 days',
+            'min_length' => 150,
+            'stop_words' => [],
         ],
     ],
     OpenRouterClient::class => [

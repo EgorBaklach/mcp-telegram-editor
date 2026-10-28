@@ -1,6 +1,6 @@
-<?php namespace App\Tools\Fl;
+<?php namespace App\Tools\FL;
 
-use App\Models\FlOrder;
+use App\Models\FLOrder;
 use Illuminate\Database\Capsule\Manager as Capsule;
 use InvalidArgumentException;
 
@@ -12,6 +12,6 @@ final class MarkOrderTool
     {
         if($projectId <= 0) throw new InvalidArgumentException('$projectId must be positive');
 
-        return FlOrder::where('project_id', $projectId)->update(['published' => $published]) ? 'success' : 'not found';
+        return FLOrder::where('project_id', $projectId)->update(['published' => $published]) ? 'success' : 'not found';
     }
 }

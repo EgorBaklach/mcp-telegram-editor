@@ -2,7 +2,7 @@
 
 interface MacroableInterface
 {
-    public static function mixin(object $mixin, bool $replace = true): void;
+    public static function mixin(MixinInterface $mixin, bool $replace = true): void;
 
     public static function hasMacro(string $name): bool;
 }

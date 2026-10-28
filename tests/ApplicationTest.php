@@ -21,7 +21,7 @@ class ApplicationTest extends TestCase
     #[TestDox('Контейнер загружает все модульные определения из definitions/*.php и разрешает ключевые сервисы')]
     public function testContainerResolvesCoreServicesAndDefinitions(): void
     {
-        foreach(['agents', 'clients', 'commands', 'database', 'dependencies', 'mcp', 'mixins', 'operators', 'redis', 'sources'] as $key)
+        foreach(['agents', 'clients', 'commands', 'database', 'dependencies', 'helpers', 'mcp', 'mixins', 'operators', 'redis', 'sources'] as $key)
         {
             $this->assertTrue($this->container->has($key), "Определение {$key} должно быть загружено из definitions/{$key}.php");
             $this->assertIsArray($this->container->get($key));

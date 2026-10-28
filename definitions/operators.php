@@ -1,11 +1,12 @@
 <?php
 
-use App\Dispatchers\Source\FlDispatcher;
-use App\Operators\FlOperator;
+use App\Dispatchers\Source\{FLDispatcher, HHDispatcher};
+use App\Operators\{FLOperator, HHOperator};
 use Magistrale\Dispatchers\Migration\AbstractDispatcher as MigrationDispatcher;
 use Magistrale\Operators\MigrateOperator;
 
 return [
-    FlDispatcher::class => FlOperator::class,
+    FLDispatcher::class => FLOperator::class,
+    HHDispatcher::class => HHOperator::class,
     MigrationDispatcher::class => MigrateOperator::class,
 ];

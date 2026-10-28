@@ -1,6 +1,7 @@
 <?php
 
-use App\Tools\Fl\{CheckNewOrdersTool, MarkOrderTool};
+use App\Tools\FL\{CheckNewOrdersTool, MarkOrderTool};
+use App\Tools\HH\{CheckNewVacanciesTool, MarkVacancyTool};
 use App\Tools\Mcp\PingTool;
 use App\Tools\OpenRouter\{CheckNewModelsTool, MarkPublishedTool};
 use App\Tools\Telegram\{DeleteByTextTool, DeleteTool, EditTool, NotifyTool, PublishTool, SearchPostsTool};
@@ -24,5 +25,7 @@ return [
         ['handler' => [MarkPublishedTool::class, 'mark'], 'name' => 'mark_published', 'description' => 'Marks an OpenRouter model as published in DB by its model_id after agent publishes the post'],
         ['handler' => [CheckNewOrdersTool::class, 'check'], 'name' => 'check_new_orders', 'description' => 'Syncs FL.ru orders with DB, filters out small tasks, and returns JSON with pending orders (published is null)'],
         ['handler' => [MarkOrderTool::class, 'mark'], 'name' => 'mark_order', 'description' => 'Marks an FL.ru order in DB by its project_id as published (true) or rejected (false)'],
+        ['handler' => [CheckNewVacanciesTool::class, 'check'], 'name' => 'check_new_vacancies', 'description' => 'Syncs HH.ru vacancies with DB, filters out short descriptions, and returns JSON with pending vacancies (published is null)'],
+        ['handler' => [MarkVacancyTool::class, 'mark'], 'name' => 'mark_vacancy', 'description' => 'Marks an HH.ru vacancy in DB by its vacancy_id as published (true) or rejected (false)'],
     ],
 ];

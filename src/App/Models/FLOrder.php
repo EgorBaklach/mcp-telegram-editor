@@ -2,7 +2,7 @@
 
 use Illuminate\Database\Eloquent\Model;
 
-class FlOrder extends Model
+class FLOrder extends Model
 {
     public $incrementing = false;
 

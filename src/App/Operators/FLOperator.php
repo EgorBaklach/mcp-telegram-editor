@@ -1,12 +1,12 @@
 <?php namespace App\Operators;
 
-use App\Dispatchers\Source\FlDispatcher;
-use Magistrale\Operators\AbstractOperator;
+use App\Dispatchers\Source\FLDispatcher;
+use Magistrale\Contracts\OperatorInterface;
 use Psr\Http\Message\ResponseInterface;
 
-class FlOperator extends AbstractOperator
+class FLOperator implements OperatorInterface
 {
-    public function __invoke(FlDispatcher $dispatcher): ?array
+    public function __invoke(FLDispatcher $dispatcher): ?array
     {
         return [
             'fetch.native' => [

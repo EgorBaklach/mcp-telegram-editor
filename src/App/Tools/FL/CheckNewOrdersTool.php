@@ -1,10 +1,10 @@
-<?php namespace App\Tools\Fl;
+<?php namespace App\Tools\FL;
 
-use App\Dispatchers\Source\FlDispatcher;
+use App\Dispatchers\Source\FLDispatcher;
 
 final class CheckNewOrdersTool
 {
-    public function __construct(private FlDispatcher $dispatcher) {}
+    public function __construct(private FLDispatcher $dispatcher) {}
 
     public function check(): string
     {

@@ -1,8 +1,8 @@
 <?php
 
-use App\Dispatchers\Source\FlDispatcher;
+use App\Dispatchers\Source\{FLDispatcher, HHDispatcher};
 use App\Dispatchers\Telegram\{AbstractDispatcher as TelegramDispatcher, DeleteDispatcher};
-use App\Mixins\{FlMixin, TelegramMixin};
+use App\Mixins\{FLMixin, HHMixin, TelegramMixin};
 use App\Observers\AbstractObserver;
 use Cli\Commands\AbstractCommand;
 use Magistrale\Mixins\CommandMixin;
@@ -12,5 +12,6 @@ return [
     TelegramDispatcher::class => TelegramMixin::class,
     DeleteDispatcher::class => TelegramMixin::class,
     AbstractObserver::class => TelegramMixin::class,
-    FlDispatcher::class => FlMixin::class,
+    FLDispatcher::class => FLMixin::class,
+    HHDispatcher::class => HHMixin::class,
 ];

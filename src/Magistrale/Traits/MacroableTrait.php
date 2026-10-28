@@ -2,6 +2,7 @@
 
 use BadMethodCallException;
 use Closure;
+use Magistrale\Contracts\MixinInterface;
 use ReflectionClass;
 use ReflectionMethod;
 
@@ -9,7 +10,7 @@ trait MacroableTrait
 {
     protected static array $macros = [];
 
-    public static function mixin(object $mixin, bool $replace = true): void
+    public static function mixin(MixinInterface $mixin, bool $replace = true): void
     {
         $reflection = new ReflectionClass($mixin);
 

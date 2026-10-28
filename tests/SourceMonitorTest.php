@@ -1,6 +1,6 @@
 <?php namespace Tests;
 
-use App\Dispatchers\SourceMonitor\{FlDispatcher, OpenRouterDispatcher};
+use App\Dispatchers\SourceMonitor\{FLDispatcher, HHDispatcher, OpenRouterDispatcher};
 use Cli\Commands\SourceMonitorCommand;
 use League\Container\DefinitionContainerInterface;
 use Magistrale\Agents\{AgyAgent, HermesAgent};
@@ -29,6 +29,7 @@ class SourceMonitorTest extends TestCase
         $this->fs = $this->container->get(Filesystem::class);
         $this->redis->unlock('lock:source:openrouter');
         $this->redis->unlock('lock:source:fl');
+        $this->redis->unlock('lock:source:hh');
         $this->redis->unlock('lock:source:test');
 
         $this->command = $this->container->get(SourceMonitorCommand::class);
@@ -41,6 +42,7 @@ class SourceMonitorTest extends TestCase
     {
         $this->redis->unlock('lock:source:openrouter');
         $this->redis->unlock('lock:source:fl');
+        $this->redis->unlock('lock:source:hh');
         $this->redis->unlock('lock:source:test');
         parent::tearDown();
     }
@@ -160,7 +162,11 @@ class SourceMonitorTest extends TestCase
 
         $this->command->logger = new ConsoleLogger();
         $this->assertSame(Command::SUCCESS, $this->command->run(new ArrayInput(['--fl' => 'agy']), $output));
-        $this->assertInstanceOf(FlDispatcher::class, $this->container->get(FlDispatcher::class));
+        $this->assertInstanceOf(FLDispatcher::class, $this->container->get(FLDispatcher::class));
+
+        $this->command->logger = new ConsoleLogger();
+        $this->assertSame(Command::SUCCESS, $this->command->run(new ArrayInput(['--hh' => 'agy']), $output));
+        $this->assertInstanceOf(HHDispatcher::class, $this->container->get(HHDispatcher::class));
 
         $this->command->logger = new ConsoleLogger();
         $this->assertSame(Command::SUCCESS, $this->command->run(new ArrayInput(['--openrouter' => 'hermes']), $output));

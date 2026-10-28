@@ -1,6 +1,6 @@
 <?php namespace App\Dispatchers\SourceMonitor;
 
-class FlDispatcher extends AbstractDispatcher
+class FLDispatcher extends AbstractDispatcher
 {
     protected const source = 'fl';
 

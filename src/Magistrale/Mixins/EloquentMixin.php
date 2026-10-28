@@ -2,8 +2,9 @@
 
 use Closure;
 use Illuminate\Database\Eloquent\Builder;
+use Magistrale\Contracts\MixinInterface;
 
-class EloquentMixin
+class EloquentMixin implements MixinInterface
 {
     public function ingest(): Closure
     {

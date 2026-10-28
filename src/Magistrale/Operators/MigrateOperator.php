@@ -1,13 +1,14 @@
 <?php namespace Magistrale\Operators;
 
-use Magistrale\Models\Migration;
 use Illuminate\Database\Eloquent\Builder;
 use Laminas\Stdlib\Glob;
+use Magistrale\Contracts\OperatorInterface;
 use Magistrale\Dispatchers\Migration\AbstractDispatcher;
+use Magistrale\Models\Migration;
 use RuntimeException;
 use Throwable;
 
-class MigrateOperator extends AbstractOperator
+class MigrateOperator implements OperatorInterface
 {
     public function __invoke(AbstractDispatcher $dispatcher): array
     {

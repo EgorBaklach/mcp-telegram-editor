@@ -1,8 +1,9 @@
 <?php namespace Magistrale\Mixins;
 
 use Closure;
+use Magistrale\Contracts\MixinInterface;
 
-class RedisMixin
+class RedisMixin implements MixinInterface
 {
     public function encode(): Closure
     {

@@ -3,8 +3,9 @@
 use Closure;
 use Illuminate\Database\Query\Builder;
 use InvalidArgumentException;
+use Magistrale\Contracts\MixinInterface;
 
-class QueryMixin
+class QueryMixin implements MixinInterface
 {
     public function bindings(): Closure
     {

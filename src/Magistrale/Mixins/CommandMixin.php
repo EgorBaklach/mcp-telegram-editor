@@ -2,8 +2,9 @@
 
 use Cli\Commands\AbstractCommand;
 use Closure;
+use Magistrale\Contracts\MixinInterface;
 
-class CommandMixin
+class CommandMixin implements MixinInterface
 {
     public function hasOption(): Closure
     {

@@ -3,8 +3,9 @@
 use App\Dispatchers\Telegram\AbstractDispatcher;
 use App\Observers\AbstractObserver;
 use Closure;
+use Magistrale\Contracts\MixinInterface;
 
-class TelegramMixin
+class TelegramMixin implements MixinInterface
 {
     public function escape(): Closure
     {

@@ -1,16 +1,16 @@
 <?php namespace Tests;
 
-use App\Dispatchers\Source\FlDispatcher;
-use App\Models\FlOrder;
-use App\Tools\Fl\{CheckNewOrdersTool, MarkOrderTool};
+use App\Dispatchers\Source\FLDispatcher;
+use App\Models\FLOrder;
+use App\Tools\FL\{CheckNewOrdersTool, MarkOrderTool};
 use GuzzleHttp\Psr7\Response;
 use Illuminate\Database\Capsule\Manager as Capsule;
 use InvalidArgumentException;
-use Magistrale\Clients\FlClient;
+use Magistrale\Clients\FLClient;
 use PHPUnit\Framework\Attributes\TestDox;
 use Psr\Http\Message\ResponseInterface;
 
-class FlTest extends TestCase
+class FLTest extends TestCase
 {
     private Capsule $capsule;
 
@@ -20,7 +20,7 @@ class FlTest extends TestCase
 
         $this->capsule = $this->container->get(Capsule::class);
         $this->capsule->getConnection()->beginTransaction();
-        FlOrder::query()->delete();
+        FLOrder::query()->delete();
     }
 
     protected function tearDown(): void
@@ -34,15 +34,15 @@ class FlTest extends TestCase
         parent::tearDown();
     }
 
-    #[TestDox('SyncDispatcher и FlMixin: парсят HTML-каталог, дедуплицируют по project_id и hash, отсеивают мелкие задачи в published=false и возвращают только published IS NULL')]
-    public function testSyncDispatcherHtmlCatalogDeduplicationAndSmallTaskFiltering(): void
+    #[TestDox('FLDispatcher и FLMixin: парсят HTML-каталог, дедуплицируют по project_id и hash, отсеивают мелкие задачи в published=false и возвращают только published IS NULL')]
+    public function testFLDispatcherHtmlCatalogDeduplicationAndSmallTaskFiltering(): void
     {
         $existingTitle = 'Разработка CRM на Laravel';
         $existingBudget = '150 000 ₽';
         $existingPreview = 'Краткое превью существующего заказа';
         $existingHash = md5(mb_strtolower($existingTitle.'|'.$existingBudget.'|'.$existingPreview));
 
-        FlOrder::create([
+        FLOrder::create([
             'project_id' => 999,
             'hash' => md5('expired'),
             'title' => 'Устаревший заказ старше 30 дней',
@@ -51,9 +51,9 @@ class FlTest extends TestCase
             'description' => 'Старый заказ',
             'published' => false,
         ]);
-        FlOrder::where('project_id', 999)->update(['created_at' => date('Y-m-d H:i:s', strtotime('-31 days'))]);
+        FLOrder::where('project_id', 999)->update(['created_at' => date('Y-m-d H:i:s', strtotime('-31 days'))]);
 
-        FlOrder::create([
+        FLOrder::create([
             'project_id' => 1001,
             'hash' => $existingHash,
             'title' => $existingTitle,
@@ -96,8 +96,8 @@ class FlTest extends TestCase
         $fullDescription = str_repeat('Требуется спроектировать архитектуру базы данных PostgreSQL, реализовать личный кабинет дилера на Laravel 11 и React, настроить обмен с 1С и очередей в Redis. ', 3);
         $validDetailHtml = '<div id="projectp1005">'.$fullDescription.'</div>';
 
-        $mock = $this->createMock(FlClient::class);
-        $mock->config = $this->container->get('clients')[FlClient::class];
+        $mock = $this->createMock(FLClient::class);
+        $mock->config = $this->container->get('clients')[FLClient::class];
         $mock->expects($this->exactly(2))
             ->method('projects')
             ->willReturnOnConsecutiveCalls(
@@ -112,9 +112,9 @@ class FlTest extends TestCase
             ->method('project')
             ->willReturnCallback(fn(string $uri) => str_contains($uri, '1004') ? new Response(200, [], $shortDetailHtml) : new Response(200, [], $validDetailHtml));
 
-        $this->container->add(FlClient::class, $mock);
+        $this->container->add(FLClient::class, $mock);
 
-        $dispatcher = $this->container->get(FlDispatcher::class);
+        $dispatcher = $this->container->get(FLDispatcher::class);
         $this->assertTrue($dispatcher->dispatch());
 
         $results = $dispatcher->getResults();
@@ -122,11 +122,11 @@ class FlTest extends TestCase
         $this->assertSame(1005, $results[0]['project_id']);
         $this->assertStringContainsString('PostgreSQL', $results[0]['description']);
 
-        $this->assertNull(FlOrder::where('project_id', 999)->first(), 'Заказ старше 30 дней должен автоматически удаляться по TTL');
-        $this->assertNull(FlOrder::where('project_id', 1002)->first(), 'Клон 1002 должен быть отсечен по совпадению hash без записи дубля');
-        $this->assertFalse(FlOrder::where('project_id', 1003)->first()->published, 'Мелкий заказ за 500 ₽ должен сохраниться с published=false');
-        $this->assertFalse(FlOrder::where('project_id', 1004)->first()->published, 'Заказ с коротким описанием (<150 символов) должен сохраниться с published=false');
-        $this->assertNull(FlOrder::where('project_id', 1005)->first()->published, 'Целевой крупный заказ должен иметь published=null');
+        $this->assertNull(FLOrder::where('project_id', 999)->first(), 'Заказ старше 30 дней должен автоматически удаляться по TTL');
+        $this->assertNull(FLOrder::where('project_id', 1002)->first(), 'Клон 1002 должен быть отсечен по совпадению hash без записи дубля');
+        $this->assertFalse(FLOrder::where('project_id', 1003)->first()->published, 'Мелкий заказ за 500 ₽ должен сохраниться с published=false');
+        $this->assertFalse(FLOrder::where('project_id', 1004)->first()->published, 'Заказ с коротким описанием (<150 символов) должен сохраниться с published=false');
+        $this->assertNull(FLOrder::where('project_id', 1005)->first()->published, 'Целевой крупный заказ должен иметь published=null');
     }
 
     #[TestDox('CheckNewOrdersTool и фоллбек на RSS: при сбое сессионного фильтра переключается на RSS, фильтрует по ключевым словам и отдает JSON')]
@@ -148,7 +148,7 @@ class FlTest extends TestCase
 
         $detail2001 = '<div id="projectp2001">'.str_repeat('Полное техническое задание на разработку нестандартного модуля обмена 1С:УТ и коробочного Битрикс24 с очередями и обработкой конфликтов ИНН. ', 3).'</div>';
 
-        $client = new class($this->container->get('clients')[FlClient::class], $rssXml, $detail2001) extends FlClient
+        $client = new class($this->container->get('clients')[FLClient::class], $rssXml, $detail2001) extends FLClient
         {
             private int $rssCalls = 0;
 
@@ -167,7 +167,7 @@ class FlTest extends TestCase
             }
         };
 
-        $this->container->add(FlClient::class, $client);
+        $this->container->add(FLClient::class, $client);
 
         $tool = $this->container->get(CheckNewOrdersTool::class);
         $ok = json_decode($tool->check(), true);
@@ -181,9 +181,9 @@ class FlTest extends TestCase
 
         $markTool = $this->container->get(MarkOrderTool::class);
         $this->assertSame('success', $markTool->mark(2001, true));
-        $this->assertTrue(FlOrder::where('project_id', 2001)->first()->published);
+        $this->assertTrue(FLOrder::where('project_id', 2001)->first()->published);
         $this->assertSame('success', $markTool->mark(2001, false));
-        $this->assertFalse(FlOrder::where('project_id', 2001)->first()->published);
+        $this->assertFalse(FLOrder::where('project_id', 2001)->first()->published);
         $this->assertSame('not found', $markTool->mark(999999, true));
 
         $this->expectException(InvalidArgumentException::class);

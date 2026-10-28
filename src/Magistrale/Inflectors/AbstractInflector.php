@@ -2,12 +2,13 @@
 
 use Framework\Inflectors\AbstractInflector as BaseInflector;
 use Magistrale\Clients\AbstractClient;
-use Magistrale\Contracts\ObserverInterface;
+use Magistrale\Contracts\{MixinInterface, ObserverInterface, OperatorInterface};
 
 /**
- * @method object|null mixins(object $object)
+ * @method OperatorInterface|null helpers(object $object)
+ * @method MixinInterface|null mixins(object $object)
  * @method ObserverInterface|null observers(object $object)
- * @method callable|null operators(object $object)
+ * @method OperatorInterface|null operators(object $object)
  * @method AbstractClient|null sources(object $object)
  */
 abstract class AbstractInflector extends BaseInflector

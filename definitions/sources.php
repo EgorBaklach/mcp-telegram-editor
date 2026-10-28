@@ -1,9 +1,10 @@
 <?php
 
-use App\Dispatchers\Source\{FlDispatcher, OpenRouterDispatcher};
-use Magistrale\Clients\{FlClient, OpenRouterClient};
+use App\Dispatchers\Source\{FLDispatcher, HHDispatcher, OpenRouterDispatcher};
+use Magistrale\Clients\{FLClient, HHClient, OpenRouterClient};
 
 return [
     OpenRouterDispatcher::class => OpenRouterClient::class,
-    FlDispatcher::class => FlClient::class,
+    FLDispatcher::class => FLClient::class,
+    HHDispatcher::class => HHClient::class,
 ];

@@ -10,5 +10,6 @@ class SourceMonitorCommand extends AbstractCommand
     {
         $this->addOption('openrouter', null, InputOption::VALUE_OPTIONAL, 'Запустить мониторинг бесплатных AI-моделей OpenRouter через указанного агента (например, --openrouter=agy)', false);
         $this->addOption('fl', null, InputOption::VALUE_OPTIONAL, 'Запустить мониторинг новых заказов FL.ru через указанного агента (например, --fl=agy)', false);
+        $this->addOption('hh', null, InputOption::VALUE_OPTIONAL, 'Запустить мониторинг новых вакансий HH.ru через указанного агента (например, --hh=agy)', false);
     }
 }
