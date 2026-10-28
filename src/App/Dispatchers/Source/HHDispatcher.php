@@ -1,12 +1,11 @@
 <?php namespace App\Dispatchers\Source;
 
 use App\Models\HHVacancy;
-use Magistrale\Contracts\CallbackInterface;
 use RuntimeException;
 use Throwable;
 
 class HHDispatcher extends AbstractDispatcher
-{   
+{
     public function dispatch(mixed $payload = null): bool
     {
         $this->results = []; $this->upsert = [];
@@ -17,9 +16,9 @@ class HHDispatcher extends AbstractDispatcher
 
             if(!$this->callback->fetch('native') && !$this->callback->fetch('rss')) throw new RuntimeException('HH.ru catalog and RSS fetch failed');
 
-            foreach(HHVacancy::ingest(array_reverse($this->upsert), 'vacancy_id') as $id)
+            foreach(HHVacancy::ingest(array_reverse($this->upsert), 'hash') as $hash)
             {
-                if(!$description = $this->callback->fetch('description', $vacancy = $this->upsert[$id])) continue;
+                if(!$description = $this->callback->fetch('description', $vacancy = $this->upsert[$hash])) continue;
 
                 $this->results[] = ['description' => $description, 'published' => null] + $vacancy;
             }

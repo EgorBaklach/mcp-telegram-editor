@@ -30,7 +30,7 @@ abstract class AbstractCommand extends Command implements CommandInterface, Macr
 
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
-        $this->input = $input; $this->logger->setOutput($output); $commands = $this->container->get('commands'); $dispatchers = $commands[static::class] ?? [];
+        $this->input = $input; $this->logger->setOutput($output); $commands = $this->container->get('commands'); $dispatchers = $commands[static::class];
 
         foreach($dispatchers as $option => $class)
         {

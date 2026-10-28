@@ -33,7 +33,7 @@ final class McpServiceProvider extends AbstractProvider implements BootableServi
         $this->container()->add(DefinitionContainerInterface::class, $this->container());
 
         // 2. Logger
-        $this->container()->add(LoggerInterface::class, fn (): StderrLogger => new StderrLogger($this->settings['logging']['stream'] ?? 'php://stderr'));
+        $this->container()->add(LoggerInterface::class, fn (): StderrLogger => new StderrLogger($this->settings['logging']['stream']));
 
         // 3. StreamFactory
         $this->container()->add(StreamFactoryInterface::class, StreamFactory::class);

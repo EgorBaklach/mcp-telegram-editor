@@ -30,7 +30,7 @@ abstract class AbstractMixin implements MixinInterface
     {
         return function(?string ...$parts): string
         {
-            return md5(mb_strtolower(implode('|', array_map(fn(?string $p): string => trim($p ?? ''), $parts))));
+            return md5(mb_strtolower(implode('|', array_map(fn(?string $p): string => trim((string) $p), $parts))));
         };
     }
 

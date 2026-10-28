@@ -29,12 +29,12 @@ class HHMixin extends AbstractMixin
 
             if(!$parts) return null;
 
-            $parts[] = match($comp['currencyCode'] ?? 'RUR')
+            $parts[] = match($comp['currencyCode'])
             {
                 'RUR', 'RUB' => '₽', 'USD' => '$', 'EUR' => '€', default => $comp['currencyCode']
             };
 
-            $parts[] = isset($comp['gross']) && $comp['gross'] ? 'до вычета' : 'на руки';
+            $parts[] = $comp['gross'] ? 'до вычета' : 'на руки';
 
             return implode(' ', $parts);
         };
@@ -44,29 +44,28 @@ class HHMixin extends AbstractMixin
     {
         return function(ResponseInterface $response): ?true
         {
-            /** @var HHDispatcher $this */ if(!$lux = $this->lux($response)) return null; $result = $lux['vacancySearchResult'] ?? [];
+            /** @var HHDispatcher $this */ if(!$lux = $this->lux($response)) return null;
 
-            foreach(array_slice($result['vacancies'] ?? [], 0, (int) ($result['totalResults'] ?? 0)) as $item)
+            foreach(array_slice($lux['vacancySearchResult']['vacancies'], 0, (int) $lux['vacancySearchResult']['totalResults']) as $item)
             {
-                if(!$vacancy_id = (int) ($item['vacancyId'] ?? 0)) continue;
+                $hash = $this->hash(
+                    $title = $this->clean($item['name']),
+                    $company = $this->clean($item['company']['name']),
+                    $salary = $this->salary($item['compensation'])
+                );
 
-                $title = $this->clean($item['name'] ?? null);
-                $company = $this->clean($this->callback->array('get', $item, 'company.name'));
-                $salary = $this->salary($item['compensation'] ?? []);
+                $formats = $this->callback->array(fn(callable $get) => $get($item, 'workFormats.0.workFormatsElement') ?? $get($item, '@workSchedule'));
 
-                $formats = $this->callback->array('get', $item, 'workFormats.0.workFormatsElement') ?? (isset($item['@workSchedule']) ? [$item['@workSchedule']] : []);
-                $snippet = $item['snippet'] ?? [];
-
-                $this->merge([
-                    'vacancy_id' => $vacancy_id,
-                    'hash' => $this->hash($title, $company, $salary),
+                $this->extend([
+                    'vacancy_id' => (int) $item['vacancyId'],
+                    'hash' => $hash,
                     'title' => $title,
                     'company' => $company,
-                    'address' => $this->clean($this->callback->array('get', $item, 'address.displayName') ?? $this->callback->array('get', $item, 'area.name')),
-                    'schedule' => $formats ? '{'.implode(',', $formats).'}' : null,
-                    'link' => $this->callback->array('get', $item, 'links.desktop', 'https://ekaterinburg.hh.ru/vacancy/'.$vacancy_id),
+                    'address' => $this->callback->array(fn(callable $get) => $this->clean($get($item, 'address.displayName') ?? $item['area']['name'])),
+                    'schedule' => $formats ? '{'.implode(',', (array) $formats).'}' : null,
+                    'link' => $item['links']['desktop'],
                     'salary' => $salary,
-                    'description' => $this->clean(implode(' ', array_filter([$snippet['req'] ?? null, $snippet['resp'] ?? null, $snippet['cond'] ?? null, $snippet['skill'] ?? null]))) ?: '',
+                    'description' => $this->clean(implode(' ', array_filter($item['snippet']))) ?: '',
                     'published' => false,
                 ]);
             }
@@ -83,15 +82,17 @@ class HHMixin extends AbstractMixin
 
             foreach($xml->channel->item as $item)
             {
-                $link = trim($item->link); if(!preg_match('/\/vacancy\/(\d+)/', $link, $m)) continue;
+                if(!preg_match('/\/vacancy\/(\d+)/', $link = trim($item->link), $m)) continue; $raw = (string) $item->description;
 
-                $title = $this->clean($item->title); $raw = (string) $item->description;
-                $company = preg_match('/Вакансия компании:\s*([^<]+)/iu', $raw, $cm) ? $this->clean($cm[1]) : null;
-                $salary = preg_match('/дохода:\s*([^<]+)/iu', $raw, $sm) && !str_contains($sm[1], 'не указан') ? $this->clean($sm[1]) : null;
+                $hash = $this->hash(
+                    $title = $this->clean($item->title),
+                    $company = preg_match('/Вакансия компании:\s*([^<]+)/iu', $raw, $cm) ? $this->clean($cm[1]) : null,
+                    $salary = preg_match('/дохода:\s*([^<]+)/iu', $raw, $sm) && !str_contains($sm[1], 'не указан') ? $this->clean($sm[1]) : null
+                );
 
-                $this->merge([
+                $this->extend([
                     'vacancy_id' => (int) $m[1],
-                    'hash' => $this->hash($title, $company, $salary),
+                    'hash' => $hash,
                     'title' => $title,
                     'company' => $company,
                     'address' => preg_match('/Регион:\s*([^<]+)/iu', $raw, $am) ? $this->clean($am[1]) : null,
@@ -107,25 +108,16 @@ class HHMixin extends AbstractMixin
         };
     }
 
-    public function merge(): Closure
+    public function extend(): Closure
     {
         return function(array $vacancy): void
         {
-            /** @var HHDispatcher $this */
+            /** @var HHDispatcher $this */ $item = $this->upsert[$vacancy['hash']] ??= $vacancy;
 
-            foreach($this->upsert as $id => $item)
+            if($vacancy['address'] && !str_contains((string) $item['address'], $vacancy['address']))
             {
-                if($item['hash'] !== $vacancy['hash']) continue;
-
-                if($vacancy['address'] && !str_contains((string) $item['address'], $vacancy['address'])) 
-                {
-                    $this->upsert[$id]['address'] = $item['address'] ? $item['address'].', '.$vacancy['address'] : $vacancy['address'];
-                }
-
-                return;
+                $this->upsert[$item['hash']]['address'] = implode(', ', array_filter([$item['address'], $vacancy['address']]));
             }
-
-            $this->upsert[$vacancy['vacancy_id']] = $vacancy;
         };
     }
 
@@ -143,7 +135,7 @@ class HHMixin extends AbstractMixin
                 }
             }
 
-            if(!$html) return null; $skills = !empty($vacancy['keySkills']) ? PHP_EOL.'Навыки: '.implode(', ', $vacancy['keySkills']) : '';
+            if(!$html) return null; $skills = isset($vacancy['keySkills'][0]) ? PHP_EOL.'Навыки: '.implode(', ', $vacancy['keySkills']) : '';
 
             return $this->clean(str_replace(['<br>', '<br/>', '<br />', '</p>', '</li>'], PHP_EOL, $html), true).$skills;
         };
