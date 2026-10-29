@@ -1,24 +1,31 @@
 <?php namespace Cli\Console;
 
-use Framework\Contracts\Console\{CommandInterface, ConsoleInterface};
+use Framework\Contracts\Console\ConsoleInterface;
 use League\Container\DefinitionContainerInterface;
 use Symfony\Component\Console\Application;
 use Symfony\Component\Console\Command\Command;
 
 class SymfonyConsole extends Application implements ConsoleInterface
 {
+    private array $commands = [];
+
     public function __construct(private readonly DefinitionContainerInterface $container)
     {
         parent::__construct('Application CLI', '1.0.0');
     }
 
-    public function add(Command $command): ?Command
+    public function inset(mixed $command): void
     {
-        $command = parent::add($command); if($command instanceof CommandInterface) $command->setContainer($this->container); return $command;
+        $command = $this->add($command instanceof Command ? $command : new $command); $this->commands[$command->getName()] = $command::class;
     }
 
-    public function find(string $name): Command
+    public function get(string $name): Command
     {
-        $command = parent::find($name); if($command instanceof CommandInterface) $command->construct(); return $command;
+        if($class = $this->commands[$name] ?? null)
+        {
+            $command = $this->container->get($class); $command->setContainer($this->container)->construct(); $this->add($command);
+        }
+
+        return parent::get($name);
     }
 }

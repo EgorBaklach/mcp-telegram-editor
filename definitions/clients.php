@@ -8,6 +8,7 @@ return [
         'base_uri' => 'https://www.fl.ru/',
         'timeout' => 10.0,
         'cookies' => true,
+        'decode_content' => 'gzip, deflate',
         'headers' => [
             'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
             'Accept-Language' => 'ru-RU,ru;q=0.9,en-US;q=0.8,en;q=0.7',
@@ -60,6 +61,7 @@ return [
         'proxy' => getenv('HH_PROXY') ?: null,
         'timeout' => 10.0,
         'cookies' => true,
+        'decode_content' => 'gzip, deflate',
         'headers' => [
             'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
             'Accept-Language' => 'ru-RU,ru;q=0.9,en-US;q=0.8,en;q=0.7',
@@ -74,13 +76,18 @@ return [
         'criteria' => [
             'ttl' => '-30 days',
             'min_length' => 150,
-            'stop_words' => [],
+            'stop_words' => [
+                '1с:предприятие', '1с: предприятие', '1с предприятие', 'платформы 1с', 'конфигураций 1с',
+                '1с:бухгалтерия', '1с:управление', '1с:комплексная', '1с:зуп', '1с:ут', '1с:ка', '1с:erp', '1с:унф',
+                '1с 8', '1c 8', '1с8', 'аналитик 1с', '1с разработчик', '1с-разработчик', 'стажер', 'стажёр',
+            ],
         ],
     ],
     OpenRouterClient::class => [
         'base_uri' => 'https://openrouter.ai/api/v1/',
         'nat64_ips' => array_values(array_filter(explode(',', getenv('OPENROUTER_NAT64_IPS') ?: ''))),
         'timeout' => 10.0,
+        'decode_content' => 'gzip, deflate',
     ],
     TelegramClient::class => [
         'base_uri' => 'https://api.telegram.org/bot'.getenv('TELEGRAM_BOT_TOKEN').'/',

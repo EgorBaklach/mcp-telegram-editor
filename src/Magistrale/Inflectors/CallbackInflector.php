@@ -8,7 +8,9 @@ class CallbackInflector extends AbstractInflector
     {
         $callback = clone $this->container()->get(CallbackInterface::class);
 
-        foreach(['helpers', 'operators'] as $type) if($operator = $this->{$type}($object)) $callback->container += $operator($object);
+        foreach($this->helpers($object) ?? [] as $helper) $callback->container += $helper($object);
+
+        if($operator = $this->operators($object)) $callback->container += $operator($object);
 
         $object->setCallback($callback);
     }

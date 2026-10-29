@@ -4,7 +4,6 @@ use App\Models\TestRecord;
 use Cli\Commands\MigrateCommand;
 use Illuminate\Database\Capsule\Manager as Capsule;
 use Magistrale\Dispatchers\Migration\{CreateDispatcher, DownDispatcher, UpDispatcher};
-use Magistrale\Logging\ConsoleLogger;
 use Magistrale\Models\Migration;
 use PHPUnit\Framework\Attributes\TestDox;
 use Symfony\Component\Console\Command\Command;
@@ -66,7 +65,7 @@ class DatabaseMigrationTest extends TestCase
     #[TestDox('CreateDispatcher: возвращает false (и код возврата Command::FAILURE) при пустом имени и создаёт файл при валидном')]
     public function testCreateDispatcherValidationAndFileCreation(): void
     {
-        $dispatcher = $this->container->get(CreateDispatcher::class)->build($this->command);
+        $dispatcher = $this->container->get(CreateDispatcher::class);
 
         $this->assertFalse($dispatcher->dispatch(null));
         $this->assertFalse($dispatcher->dispatch(''));
@@ -81,15 +80,14 @@ class DatabaseMigrationTest extends TestCase
         $this->assertFileExists($createdFile);
 
         $output = new BufferedOutput();
-        $this->command->logger = new ConsoleLogger();
         $this->assertSame(Command::FAILURE, $this->command->run(new ArrayInput(['--new' => null]), $output));
     }
 
     #[TestDox('UpDispatcher и DownDispatcher: накатывают миграцию, проверяют невалидный файл и безопасно откатывают по batch, ID и all')]
     public function testUpAndDownDispatchersLifecycleAndEdgeCases(): void
     {
-        $up = $this->container->get(UpDispatcher::class)->build($this->command);
-        $down = $this->container->get(DownDispatcher::class)->build($this->command);
+        $up = $this->container->get(UpDispatcher::class);
+        $down = $this->container->get(DownDispatcher::class);
 
         $validFile = 'database/migrations/9999_12_31_235958_test_valid_migration.php';
         $this->tempFiles[] = $validFile;
@@ -125,7 +123,7 @@ class DatabaseMigrationTest extends TestCase
     #[TestDox('UpDispatcher: возвращает false, если файл миграции не возвращает объект с методом up()')]
     public function testUpDispatcherFailsOnBrokenMigrationFile(): void
     {
-        $up = $this->container->get(UpDispatcher::class)->build($this->command);
+        $up = $this->container->get(UpDispatcher::class);
 
         $brokenFile = 'database/migrations/9999_12_31_235959_test_broken_migration.php';
         $this->tempFiles[] = $brokenFile;

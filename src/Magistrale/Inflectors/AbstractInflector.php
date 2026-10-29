@@ -5,7 +5,7 @@ use Magistrale\Clients\AbstractClient;
 use Magistrale\Contracts\{MixinInterface, ObserverInterface, OperatorInterface};
 
 /**
- * @method OperatorInterface|null helpers(object $object)
+ * @method array<OperatorInterface>|null helpers(object $object)
  * @method MixinInterface|null mixins(object $object)
  * @method ObserverInterface|null observers(object $object)
  * @method OperatorInterface|null operators(object $object)
@@ -13,13 +13,13 @@ use Magistrale\Contracts\{MixinInterface, ObserverInterface, OperatorInterface};
  */
 abstract class AbstractInflector extends BaseInflector
 {
-    public function __call(string $definition, array $arguments): ?object
+    public function __call(string $definition, array $arguments): object|array|null
     {
         $object = array_shift($arguments); $container = $this->container(); $items = $container->get($definition);
 
-        if($class = $items[$object::class] ?? $items[get_parent_class($object)] ?? null)
+        if($target = $items[$object::class] ?? $items[get_parent_class($object)] ?? null)
         {
-            return $container->get($class);
+            return is_array($target) ? array_map($container->get(...), $target) : $container->get($target);
         }
 
         return null;

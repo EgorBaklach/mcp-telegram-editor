@@ -1,8 +1,14 @@
 <?php
 
 use App\Dispatchers\Source\AbstractDispatcher as SourceDispatcher;
+use Cli\Commands\AbstractCommand;
 use Magistrale\Helpers\ArrayHelper;
 
 return [
-    SourceDispatcher::class => ArrayHelper::class,
+    AbstractCommand::class => [
+        ArrayHelper::class,
+    ],
+    SourceDispatcher::class => [
+        ArrayHelper::class,
+    ],
 ];

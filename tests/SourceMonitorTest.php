@@ -1,11 +1,9 @@
 <?php namespace Tests;
 
-use App\Dispatchers\SourceMonitor\{FLDispatcher, HHDispatcher, OpenRouterDispatcher};
 use Cli\Commands\SourceMonitorCommand;
 use League\Container\DefinitionContainerInterface;
 use Magistrale\Agents\{AgyAgent, HermesAgent};
 use Magistrale\Contracts\RedisInterface;
-use Magistrale\Logging\ConsoleLogger;
 use PHPUnit\Framework\Attributes\TestDox;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\ArrayInput;
@@ -58,8 +56,8 @@ class SourceMonitorTest extends TestCase
         $this->assertFalse($this->redis->unlock('lock:source:test'));
     }
 
-    #[TestDox('OpenRouterDispatcher и AgyAgent: создают изолированный HOME, выполняют процесс и удаляют HOME + лок в finally')]
-    public function testOpenRouterDispatcherSuccessLifecycle(): void
+    #[TestDox('SourceMonitorCommand и AgyAgent: создают изолированный HOME, выполняют процесс и удаляют HOME + лок в finally')]
+    public function testSourceMonitorCommandSuccessLifecycle(): void
     {
         $expectedHome = sys_get_temp_dir().'/agy-home-openrouter';
 
@@ -77,15 +75,14 @@ class SourceMonitorTest extends TestCase
         };
 
         $this->container->add(AgyAgent::class, $okAgent);
-        $dispatcher = $this->container->get(OpenRouterDispatcher::class)->build($this->command);
 
-        $this->assertTrue($dispatcher->dispatch('agy'));
+        $this->assertSame(Command::SUCCESS, $this->command->run(new ArrayInput(['--openrouter' => 'agy']), new NullOutput()));
         $this->assertDirectoryDoesNotExist($expectedHome);
         $this->assertFalse($this->redis->locked('lock:source:openrouter', 10));
     }
 
-    #[TestDox('OpenRouterDispatcher: возвращает false при сбое процесса агента, но гарантированно удаляет HOME и снимает лок в finally')]
-    public function testOpenRouterDispatcherFailureCleanup(): void
+    #[TestDox('SourceMonitorCommand: возвращает false при сбое процесса агента, но гарантированно удаляет HOME и снимает лок в finally')]
+    public function testSourceMonitorCommandFailureCleanup(): void
     {
         $expectedHome = sys_get_temp_dir().'/agy-home-openrouter';
 
@@ -99,15 +96,13 @@ class SourceMonitorTest extends TestCase
 
         $this->container->add(AgyAgent::class, $failAgent);
 
-        $dispatcher = $this->container->get(OpenRouterDispatcher::class)->build($this->command);
-
-        $this->assertFalse($dispatcher->dispatch('agy'));
+        $this->assertSame(Command::FAILURE, $this->command->run(new ArrayInput(['--openrouter' => 'agy']), new NullOutput()));
         $this->assertDirectoryDoesNotExist($expectedHome);
         $this->assertFalse($this->redis->locked('lock:source:openrouter', 10));
     }
 
-    #[TestDox('OpenRouterDispatcher: пропускает выполнение при удерживаемом Redis-локе и не снимает чужую блокировку')]
-    public function testDispatcherSkipsWhenAlreadyLocked(): void
+    #[TestDox('SourceMonitorCommand: пропускает выполнение при удерживаемом Redis-локе и не снимает чужую блокировку')]
+    public function testCommandSkipsWhenAlreadyLocked(): void
     {
         $this->assertFalse($this->redis->locked('lock:source:openrouter', 60));
 
@@ -126,9 +121,8 @@ class SourceMonitorTest extends TestCase
         };
 
         $this->container->add(AgyAgent::class, $agent);
-        $dispatcher = $this->container->get(OpenRouterDispatcher::class)->build($this->command);
 
-        $this->assertTrue($dispatcher->dispatch('agy'));
+        $this->assertSame(Command::SUCCESS, $this->command->run(new ArrayInput(['--openrouter' => 'agy']), new NullOutput()));
         $this->assertFalse($called);
         $this->assertTrue($this->redis->locked('lock:source:openrouter', 60));
     }
@@ -147,28 +141,19 @@ class SourceMonitorTest extends TestCase
         $this->container->add(AgyAgent::class, $agent);
         $output = new BufferedOutput();
 
-        $this->command->logger = new ConsoleLogger();
         $this->assertSame(Command::INVALID, $this->command->run(new ArrayInput([]), $output));
 
-        $this->command->logger = new ConsoleLogger();
         $this->assertSame(Command::FAILURE, $this->command->run(new ArrayInput(['--openrouter' => null]), $output));
         $this->assertStringContainsString('Укажите доступного AI-агента', $output->fetch());
 
-        $this->command->logger = new ConsoleLogger();
         $this->assertSame(Command::FAILURE, $this->command->run(new ArrayInput(['--openrouter' => 'unknown']), $output));
 
-        $this->command->logger = new ConsoleLogger();
         $this->assertSame(Command::SUCCESS, $this->command->run(new ArrayInput(['--openrouter' => 'agy']), $output));
 
-        $this->command->logger = new ConsoleLogger();
         $this->assertSame(Command::SUCCESS, $this->command->run(new ArrayInput(['--fl' => 'agy']), $output));
-        $this->assertInstanceOf(FLDispatcher::class, $this->container->get(FLDispatcher::class));
 
-        $this->command->logger = new ConsoleLogger();
         $this->assertSame(Command::SUCCESS, $this->command->run(new ArrayInput(['--hh' => 'agy']), $output));
-        $this->assertInstanceOf(HHDispatcher::class, $this->container->get(HHDispatcher::class));
 
-        $this->command->logger = new ConsoleLogger();
         $this->assertSame(Command::SUCCESS, $this->command->run(new ArrayInput(['--openrouter' => 'hermes']), $output));
         $this->assertInstanceOf(HermesAgent::class, $this->container->get(HermesAgent::class));
     }

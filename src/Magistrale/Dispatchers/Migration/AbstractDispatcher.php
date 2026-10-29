@@ -1,9 +1,7 @@
 <?php namespace Magistrale\Dispatchers\Migration;
 
-use Cli\Commands\MigrateCommand;
 use Illuminate\Database\Capsule\Manager as Capsule;
-use Illuminate\Database\Schema\Blueprint;
-use Magistrale\Contracts\{DispatcherInterface, OperableInterface};
+use Magistrale\Contracts\{ConsoleLoggerInterface, DispatcherInterface, OperableInterface};
 use Magistrale\Traits\OperableTrait;
 use Symfony\Component\Filesystem\Filesystem;
 
@@ -11,31 +9,7 @@ abstract class AbstractDispatcher implements DispatcherInterface, OperableInterf
 {
     use OperableTrait;
 
-    public MigrateCommand $command;
-
-    public function __construct(protected readonly Capsule $capsule, protected readonly Filesystem $fs) {}
-
-    public function build(MigrateCommand $command): self
-    {
-        $this->command = $command;
-
-        if(!$this->capsule::schema()->hasTable('migrations'))
-        {
-            $this->command->logger->comment('Создается таблица migrations...');
-
-            $this->capsule::schema()->create('migrations', function (Blueprint $table)
-            {
-                $table->increments('id');
-                $table->string('migration');
-                $table->integer('batch');
-                $table->timestamps();
-            });
-
-            $this->command->logger->info('Таблица migrations успешно создана.');
-        }
-
-        return $this;
-    }
+    public function __construct(public readonly Capsule $capsule, protected readonly Filesystem $fs, public readonly ConsoleLoggerInterface $logger) {}
 
     abstract public function dispatch(mixed $payload = null): bool;
 }

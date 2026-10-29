@@ -5,7 +5,7 @@ use Symfony\Component\Console\Output\OutputInterface;
 
 class ConsoleLogger implements ConsoleLoggerInterface
 {
-    private readonly OutputInterface $output;
+    private OutputInterface $output;
 
     public function setOutput(OutputInterface $output): void
     {

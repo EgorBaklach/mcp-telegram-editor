@@ -4,6 +4,6 @@ use League\Container\DefinitionContainerInterface;
 
 interface CommandInterface
 {
-    public function setContainer(DefinitionContainerInterface $container): void;
+    public function setContainer(DefinitionContainerInterface $container): self;
     public function construct(): void;
 }

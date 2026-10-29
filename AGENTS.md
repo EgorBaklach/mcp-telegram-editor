@@ -63,7 +63,7 @@
 
 ## 🚀 CLI-команды: Миграции и Мониторинг источников
 
-Все консольные команды наследуют `Cli\Commands\AbstractCommand`, который централизованно разрешает диспетчеры из `definitions/commands.php` и работает с опциями через `CommandMixin` (`hasOption()`, `getOption()`).
+Все консольные команды наследуют `Cli\Commands\AbstractCommand`, который лениво инициализируется в `SymfonyConsole::get()` (после легковесной регистрации через `SymfonyConsole::inset()`), автоматически подключает опции и Redis-локи из `definitions/commands.php` через `ArrayHelper` и работает с аргументами через `CommandMixin` (`hasOption()`, `getOption()`).
 
 ### 1. Система миграций (`db:migrate`)
 ```bash
@@ -71,7 +71,7 @@ docker exec mcp-telegram-editor php bin/console.php db:migrate --up
 docker exec mcp-telegram-editor php bin/console.php db:migrate --down
 docker exec mcp-telegram-editor php bin/console.php db:migrate --new=TableName
 ```
-* **Диспетчеры**: `UpDispatcher`, `DownDispatcher` и `CreateDispatcher` (`src/Magistrale/Dispatchers/Migration/`), наследующие `AbstractDispatcher` с подключённым `MigrateOperator` / `MigrationMixin`.
+* **Диспетчеры**: `UpDispatcher`, `DownDispatcher` и `CreateDispatcher` (`src/Magistrale/Dispatchers/Migration/`), наследующие `AbstractDispatcher` с подключённым `MigrateOperator`.
 * **Модель Migration**: История миграций хранится в БД и управляется через Eloquent модель `Magistrale\Models\Migration` с полями `id`, `migration`, `batch`.
 * **Файловая система и логирование**: Используется `symfony/filesystem` и единый `ConsoleLoggerInterface` (`ConsoleLogger`).
 
@@ -82,8 +82,8 @@ docker exec mcp-telegram-editor php bin/console.php source:monitor --fl=agy
 docker exec mcp-telegram-editor php bin/console.php source:monitor --hh=agy
 docker exec mcp-telegram-editor php bin/console.php source:monitor --openrouter=hermes
 ```
-* **Диспетчеры источников**: Наследуют `App\Dispatchers\SourceMonitor\AbstractDispatcher` (`OpenRouterDispatcher`, `FLDispatcher`, `HHDispatcher`).
-* **Защита от гонок (Redis Lock)**: Перед запуском AI-агента захватывается атомарный распределённый лок через `RedisInterface` (`Magistrale\Providers\RedisProvider` + `RedisMixin::encode()`, `SET key 1 NX EX ttl` по прямому TCP RESP-протоколу) и гарантированно освобождается в блоке `finally`.
+* **Команда мониторинга**: `Cli\Commands\SourceMonitorCommand` переопределяет метод `handle()` базового `AbstractCommand` и уведомляет об ошибках через `TelegramObserver` (`ObservableInterface`).
+* **Защита от гонок (Redis Lock)**: Перед выполнением любой опции в `AbstractCommand::execute()` захватывается атомарный распределённый лок из `definitions/commands.php` через `RedisInterface` (`Magistrale\Providers\RedisProvider` + `RedisMixin::encode()`, `SET key 1 NX EX ttl` по прямому TCP RESP-протоколу) и гарантированно освобождается в блоке `finally`.
 * **Драйверы AI-агентов (`Magistrale\Agents`)**: Реализуют `AgentInterface` и настраиваются в `definitions/agents.php`:
   * `AgyAgent` — создаёт изолированный эфемерный каталог `HOME` в `/tmp/agy-home-{source}`, прокидывает симлинки конфигурации и запускает процесс `agy`, удаляя временный `HOME` по завершении.
   * `HermesAgent` — заготовка драйвера под протокол ACP (Agent Communication Protocol).
@@ -92,7 +92,7 @@ docker exec mcp-telegram-editor php bin/console.php source:monitor --openrouter=
 
 ## 🧪 Тестирование и Среда разработки (LSP/IDE)
 
-* Запуск всех тестов (`28 tests, 186 assertions`):
+* Запуск всех тестов (`28 tests, 184 assertions`):
   ```bash
   docker exec mcp-telegram-editor vendor/bin/phpunit --testdox
   ```
@@ -105,11 +105,11 @@ docker exec mcp-telegram-editor php bin/console.php source:monitor --openrouter=
 
 ## 🎯 Текущий статус разработки (Session State)
 
-* **Архитектура слоёв (`Framework` / `Magistrale` / `App`)**: Завершено строгое разделение инфраструктурного ядра `Magistrale` (0 зависимостей от `App`) и прикладного слоя `App`, стандартизировано именование `[Назначение][Слой]`, унифицированы инфлекторы (`AbstractInflector`), миксины (`MixinInterface` + `MacroableInterface`), колбэки, операторы и хелперы (`OperableInterface` + `CallbackInterface` + `OperatorInterface` + `ArrayHelper` через `CallbackInflector`), наблюдатели (`ObserverInterface` + `ObservableInterface` + `ObserverInflector` + `AbstractObserver` / `TelegramObserver`) и пакетная вставка БД (`QueryMixin::ingest()` / `EloquentMixin::ingest()` через `INSERT ... ON CONFLICT DO NOTHING RETURNING`).
+* **Архитектура слоёв (`Framework` / `Magistrale` / `App`)**: Завершено строгое разделение инфраструктурного ядра `Magistrale` (0 зависимостей от `App`) и прикладного слоя `App`, стандартизировано именование `[Назначение][Слой]`, унифицированы инфлекторы (`AbstractInflector` с поддержкой массивов хелперов), миксины (`MixinInterface` + `MacroableInterface`), колбэки, операторы и хелперы (`OperableInterface` + `CallbackInterface` + `OperatorInterface` + `ArrayHelper` через `CallbackInflector`), наблюдатели (`ObserverInterface` + `ObservableInterface` + `ObserverInflector` + `AbstractObserver` / `TelegramObserver`), ленивая регистрация CLI-команд (`SymfonyConsole::inset()` + `AbstractCommand` с единой системой Redis-локов) и пакетная вставка БД (`QueryMixin::ingest()` / `EloquentMixin::ingest()` через `INSERT ... ON CONFLICT DO NOTHING RETURNING`).
 * **Telegram Bot API 10.3 & Personal Notifications**: Поддержана отправка и редактирование постов через `sendRichMessage` и `editMessageText` (`rich_message`), а также личные уведомления админу (`TELEGRAM_ADMIN_ID`) об ошибках пайплайнов и аналитических инсайтах через `TelegramObserver` и MCP-инструмент `notify` (`NotifyTool`).
 * **OpenRouter Tracker & Source Monitor**: Реализован полный цикл мониторинга бесплатных моделей OpenRouter (`check_new_models`, `mark_published`), NAT64 IPv6 failover и оркестрация фонового запуска AI-агентов через `source:monitor --openrouter=agy` с Redis-блокировками.
-* **FL.ru Tracker & Source Monitor**: Полностью реализован пайплайн мониторинга заказов FL.ru (`fl_orders` с `PRIMARY KEY (project_id)`, `FLClient`, `FLOperator`, `FLMixin`, `Source\FLDispatcher`, `SourceMonitor\FLDispatcher`, инструменты `check_new_orders` и `mark_order`, CLI-вызов `source:monitor --fl=agy`).
-* **HH.ru Tracker & Source Monitor**: Полностью реализован пайплайн мониторинга вакансий HH.ru (`hh_vacancies` с `PRIMARY KEY (vacancy_id)` и `hh_schedule[]`, `HHClient`, `HHOperator`, `HHMixin`, `Source\HHDispatcher`, `SourceMonitor\HHDispatcher`, инструменты `check_new_vacancies` и `mark_vacancy`, CLI-вызов `source:monitor --hh=agy`).
+* **FL.ru Tracker & Source Monitor**: Полностью реализован пайплайн мониторинга заказов FL.ru (`fl_orders` с `PRIMARY KEY (project_id)`, `FLClient`, `FLOperator`, `FLMixin`, `Source\FLDispatcher`, инструменты `check_new_orders` и `mark_order`, CLI-вызов `source:monitor --fl=agy`).
+* **HH.ru Tracker & Source Monitor**: Полностью реализован пайплайн мониторинга вакансий HH.ru (`hh_vacancies` с `PRIMARY KEY (vacancy_id)` и `hh_schedule[]`, `HHClient`, `HHOperator`, `HHMixin`, `Source\HHDispatcher`, инструменты `check_new_vacancies` и `mark_vacancy`, CLI-вызов `source:monitor --hh=agy`).
 
 ---
 
