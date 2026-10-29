@@ -134,23 +134,25 @@ class QueueTest extends TestCase
         $this->container->add(AgyAgent::class, $agent);
 
         $this->dispatcher->cron('0 */6 * * *', mktime(6, 0, 0, 10, 29, 2026))?->push('openrouter:agy');
+        $this->dispatcher->push('invalid:agy');
         $this->dispatcher->push('fl:agy');
         $this->dispatcher->push('hh:agy');
-        $this->assertSame(['openrouter:agy', 'fl:agy', 'hh:agy'], $this->dispatcher->pending());
+        $this->assertSame(['openrouter:agy', 'invalid:agy', 'fl:agy', 'hh:agy'], $this->dispatcher->pending());
 
         $output = new BufferedOutput();
         $this->assertSame(Command::SUCCESS, $this->command->run(new ArrayInput(['--work' => true]), $output));
 
         $this->assertSame(['openrouter:agy'], $executed);
         $this->assertNull($this->redis->command(['GET', $this->dispatcher->config['keys']['active']]));
-        $this->assertSame(['fl:agy', 'hh:agy'], $this->dispatcher->pending());
+        $this->assertSame(['invalid:agy', 'fl:agy', 'hh:agy'], $this->dispatcher->pending());
 
         $this->assertSame(Command::SUCCESS, $this->command->run(new ArrayInput(['--work' => true]), $output));
         $this->assertStringContainsString('Очередь поставлена на паузу', $output->fetch());
-        $this->assertSame(['fl:agy', 'hh:agy'], $this->dispatcher->pending());
+        $this->assertSame(['invalid:agy', 'fl:agy', 'hh:agy'], $this->dispatcher->pending());
 
         $this->redis->unlock($this->dispatcher->config['keys']['paused']);
         $this->assertSame(Command::SUCCESS, $this->command->run(new ArrayInput(['--work' => true]), $output));
+        $this->assertStringContainsString('Ошибка выполнения задачи invalid:agy', $output->fetch());
         $this->assertSame(['openrouter:agy', 'fl:agy', 'hh:agy'], $executed);
         $this->assertSame([], $this->dispatcher->pending());
     }

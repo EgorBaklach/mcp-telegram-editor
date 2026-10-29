@@ -1,12 +1,12 @@
 <?php namespace Magistrale\Dispatchers\Queue;
 
 use League\Container\DefinitionContainerInterface;
-use Magistrale\Contracts\{ConsoleLoggerInterface, DispatcherInterface, MacroableInterface, RedisInterface};
-use Magistrale\Traits\MacroableTrait;
+use Magistrale\Contracts\{ConsoleLoggerInterface, DispatcherInterface, MacroableInterface, ObservableInterface, RedisInterface};
+use Magistrale\Traits\{MacroableTrait, ObservableTrait};
 
-abstract class AbstractDispatcher implements DispatcherInterface, MacroableInterface
+abstract class AbstractDispatcher implements DispatcherInterface, MacroableInterface, ObservableInterface
 {
-    use MacroableTrait;
+    use MacroableTrait, ObservableTrait;
 
     public readonly array $config;
 

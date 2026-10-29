@@ -2,6 +2,7 @@
 
 use Framework\Contracts\Console\ConsoleInterface;
 use Symfony\Component\Console\Input\ArrayInput;
+use Throwable;
 
 class WorkDispatcher extends AbstractDispatcher
 {
@@ -21,6 +22,10 @@ class WorkDispatcher extends AbstractDispatcher
                 [$option, $agent] = array_pad(explode(':', $job, 2), 2, null);
 
                 $this->container->get(ConsoleInterface::class)->get($this->config['command'])->run(new ArrayInput(['--'.$option => $agent]), $this->logger->getOutput());
+            }
+            catch(Throwable $e)
+            {
+                $this->observer->update($e); $this->logger->error('Ошибка выполнения задачи '.$job.': '.$e->getMessage());
             }
             finally
             {
