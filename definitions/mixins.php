@@ -5,10 +5,12 @@ use App\Dispatchers\Telegram\{AbstractDispatcher as TelegramDispatcher, DeleteDi
 use App\Mixins\{FLMixin, HHMixin, TelegramMixin};
 use App\Observers\AbstractObserver;
 use Cli\Commands\AbstractCommand;
-use Magistrale\Mixins\CommandMixin;
+use Magistrale\Dispatchers\Queue\AbstractDispatcher as QueueDispatcher;
+use Magistrale\Mixins\{CommandMixin, QueueMixin};
 
 return [
     AbstractCommand::class => CommandMixin::class,
+    QueueDispatcher::class => QueueMixin::class,
     TelegramDispatcher::class => TelegramMixin::class,
     DeleteDispatcher::class => TelegramMixin::class,
     AbstractObserver::class => TelegramMixin::class,

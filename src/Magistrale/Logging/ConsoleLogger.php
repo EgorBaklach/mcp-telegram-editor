@@ -12,6 +12,11 @@ class ConsoleLogger implements ConsoleLoggerInterface
         $this->output = $output;
     }
 
+    public function getOutput(): OutputInterface
+    {
+        return $this->output;
+    }
+
     public function info(string $message): true
     {
         $this->output->writeln('<info>'.$message.'</info>'); return true;

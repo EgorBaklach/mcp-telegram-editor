@@ -23,7 +23,7 @@ class SymfonyConsole extends Application implements ConsoleInterface
     {
         if($class = $this->commands[$name] ?? null)
         {
-            $command = $this->container->get($class); $command->setContainer($this->container)->construct(); $this->add($command);
+            unset($this->commands[$name]); $command = $this->container->get($class); $command->setContainer($this->container)->construct(); $this->add($command);
         }
 
         return parent::get($name);

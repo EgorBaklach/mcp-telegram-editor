@@ -69,6 +69,7 @@ final class RedisProvider extends AbstractProvider
                     '+' => $payload,
                     ':' => $length,
                     '$' => $length === -1 ? null : substr(stream_get_contents($socket, $length + 2), 0, -2),
+                    '*' => $length < 0 ? null : array_map(fn() => $this->read($socket), $length ? range(1, $length) : []),
                     '-' => throw new RuntimeException('Redis error: '.$payload),
                     default => $payload,
                 };

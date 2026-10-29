@@ -4,8 +4,63 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "f0e0461ff8851e1186c45b56963345f9",
+    "content-hash": "f0dea757908c886a08d49f4836e2d134",
     "packages": [
+        {
+            "name": "adhocore/cron-expr",
+            "version": "1.1.3",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/adhocore/php-cron-expr.git",
+                "reference": "18c940403d969d9f36ee7ce8006c0dc00d32fcff"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/adhocore/php-cron-expr/zipball/18c940403d969d9f36ee7ce8006c0dc00d32fcff",
+                "reference": "18c940403d969d9f36ee7ce8006c0dc00d32fcff",
+                "shasum": ""
+            },
+            "require": {
+                "php": ">=7.0"
+            },
+            "require-dev": {
+                "phpunit/phpunit": "^6.5 || ^7.5"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "Ahc\\Cron\\": "src/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Jitendra Adhikari",
+                    "email": "jiten.adhikary@gmail.com"
+                }
+            ],
+            "description": "Ultra lightweight Cron Expression parser for PHP",
+            "keywords": [
+                "cron",
+                "cron-expr",
+                "cron-expression",
+                "cron-parser"
+            ],
+            "support": {
+                "issues": "https://github.com/adhocore/php-cron-expr/issues",
+                "source": "https://github.com/adhocore/php-cron-expr/tree/1.1.3"
+            },
+            "funding": [
+                {
+                    "url": "https://paypal.me/ji10",
+                    "type": "custom"
+                }
+            ],
+            "time": "2021-10-20T07:43:58+00:00"
+        },
         {
             "name": "brick/math",
             "version": "0.14.8",
