@@ -4,6 +4,7 @@ services:
   mcp-telegram-editor:
     build: .
     container_name: mcp-telegram-editor
+    init: true
     restart: unless-stopped
     network_mode: host
     volumes:
