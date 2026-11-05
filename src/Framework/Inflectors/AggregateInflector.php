@@ -11,6 +11,8 @@ class AggregateInflector implements AggregateInflectorInterface
 
     private array $inflectors = [];
 
+    private array $inflected = [];
+
     public function __construct(array $inflectors)
     {
         foreach($inflectors as $type => $inflector) $this->inflectors[] = $this->resolve($type, $inflector);
@@ -33,7 +35,7 @@ class AggregateInflector implements AggregateInflectorInterface
 
     public function inflect(mixed $object): mixed
     {
-        if(!is_object($object)) return $object;
+        if(!is_object($object) || in_array($object, $this->inflected, true)) return $object;
 
         foreach($this->getIterator() as $inflector)
         {
@@ -42,6 +44,6 @@ class AggregateInflector implements AggregateInflectorInterface
             $inflector->setContainer($this->getContainer()); $inflector->inflect($object);
         }
 
-        return $object;
+        $this->inflected[] = $object; return $object;
     }
 }

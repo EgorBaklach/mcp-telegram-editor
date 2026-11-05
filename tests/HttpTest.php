@@ -3,6 +3,7 @@
 use App\Controllers\McpController;
 use App\Middlewares\{CorsDecoratorMiddleware, CredentialsMiddleware, ProfilerMiddleware};
 use App\Strategies\McpJsonStrategy;
+use Framework\Contracts\Router\RouterInterface;
 use Laminas\Diactoros\{Response, ServerRequest};
 use PHPUnit\Framework\Attributes\TestDox;
 use Psr\Http\Message\{ResponseInterface, ServerRequestInterface};
@@ -15,13 +16,15 @@ class HttpTest extends TestCase
         $this->bootContainer();
     }
 
-    #[TestDox('McpController возвращает HTTP 204 на preflight OPTIONS-запрос')]
+    #[TestDox('RouterInterface и McpController возвращают HTTP 204 на preflight OPTIONS-запрос без дублирования маршрутов')]
     public function testMcpControllerReturns204OnOptionsRequest(): void
     {
-        $controller = $this->container->get(McpController::class);
-        $response = $controller(new ServerRequest([], [], '/', 'OPTIONS'));
+        $router = $this->container->get(RouterInterface::class);
+        $response = $router->dispatch(new ServerRequest([], [], '/', 'OPTIONS'));
 
         $this->assertSame(204, $response->getStatusCode());
+        $this->assertSame('*', $response->getHeaderLine('Access-Control-Allow-Origin'));
+        $this->assertSame('EgorBaklach', $response->getHeaderLine('X-Developer'));
     }
 
     #[TestDox('McpJsonStrategy и CorsDecoratorMiddleware устанавливают все обязательные CORS-заголовки')]

@@ -104,7 +104,7 @@ docker exec mcp-telegram-editor php bin/console.php queue:manager --clear
 
 ## 🧪 Тестирование и Среда разработки (LSP/IDE)
 
-* Запуск всех тестов (`32 tests, 241 assertions`):
+* Запуск всех тестов (`32 tests, 243 assertions`):
   ```bash
   docker exec mcp-telegram-editor vendor/bin/phpunit --testdox
   ```

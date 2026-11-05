@@ -50,7 +50,7 @@ class HHMixin extends AbstractMixin
             {
                 $hash = $this->hash(
                     $title = $this->clean($item['name']),
-                    $company = $this->clean($item['company']['name']),
+                    $company = $this->clean($item['company']['name'] ?? null),
                     $salary = $this->salary($item['compensation'])
                 );
 
