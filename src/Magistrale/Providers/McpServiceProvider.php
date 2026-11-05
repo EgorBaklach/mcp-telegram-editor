@@ -45,7 +45,8 @@ final class McpServiceProvider extends AbstractProvider implements BootableServi
                 ->setServerInfo($this->settings['server_name'], $this->settings['server_ver'])
                 ->setLogger($this->container()->get(LoggerInterface::class))
                 ->setSession(new FileSessionStore($this->settings['session_dir']))
-                ->setContainer($this->container());
+                ->setContainer($this->container())
+                ->withoutModernEra();
 
             foreach($this->settings['tools'] as $tool) $builder->addTool(...$tool);
 
