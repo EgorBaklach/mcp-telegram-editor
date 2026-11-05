@@ -5,11 +5,11 @@ use Throwable;
 
 class TelegramObserver extends AbstractObserver
 {
-    public function update(mixed $payload = null): bool
+    public function update(mixed ...$payload): bool
     {
         try
         {
-            if(!$this->callback->observer('notify', $payload)) throw new RuntimeException('Telegram notify failed'); return true;
+            if(!$this->callback->observer('notify', ...$payload)) throw new RuntimeException('Telegram notify failed'); return true;
         }
         catch(Throwable $e)
         {

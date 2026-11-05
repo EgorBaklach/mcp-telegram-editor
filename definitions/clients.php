@@ -1,6 +1,5 @@
 <?php
 
-use GuzzleHttp\Exception\GuzzleException;
 use Magistrale\Clients\{FLClient, HHClient, OpenRouterClient, TelegramClient};
 
 return [
@@ -95,9 +94,5 @@ return [
         'admin_id' => getenv('TELEGRAM_ADMIN_ID'),
         'proxy' => getenv('TELEGRAM_PROXY') ?: null,
         'timeout' => 10.0,
-        'templates' => [
-            GuzzleException::class => '<b>⚠️ %s [%s:%d]</b>'.PHP_EOL.'<pre>%s</pre>'.PHP_EOL.'<i>ℹ️ Сетевой сбой перехвачен, пайп продолжил работу.</i>',
-            Throwable::class => '<b>❌ %s [%s:%d]</b>'.PHP_EOL.'<pre>%s</pre>',
-        ],
     ],
 ];

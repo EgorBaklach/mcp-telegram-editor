@@ -2,11 +2,11 @@
 
 use App\Dispatchers\Source\FLDispatcher;
 use App\Models\FLOrder;
-use App\Tools\FL\{CheckNewOrdersTool, MarkOrderTool};
+use App\Tools\FL\{CheckNewOrdersTool, MarkOrderTool, NotifyOrderTool};
 use GuzzleHttp\Psr7\Response;
 use Illuminate\Database\Capsule\Manager as Capsule;
 use InvalidArgumentException;
-use Magistrale\Clients\FLClient;
+use Magistrale\Clients\{FLClient, TelegramClient};
 use PHPUnit\Framework\Attributes\TestDox;
 use Psr\Http\Message\ResponseInterface;
 
@@ -109,7 +109,7 @@ class FLTest extends TestCase
             ->with('test-csrf-123')
             ->willReturn(new Response(200, [], '{"result":true}'));
         $mock->expects($this->exactly(2))
-            ->method('project')
+            ->method('detail')
             ->willReturnCallback(fn(string $uri) => str_contains($uri, '1004') ? new Response(200, [], $shortDetailHtml) : new Response(200, [], $validDetailHtml));
 
         $this->container->add(FLClient::class, $mock);
@@ -129,8 +129,8 @@ class FLTest extends TestCase
         $this->assertNull(FLOrder::where('project_id', 1005)->first()->published, 'Целевой крупный заказ должен иметь published=null');
     }
 
-    #[TestDox('CheckNewOrdersTool и фоллбек на RSS: при сбое сессионного фильтра переключается на RSS, фильтрует по ключевым словам и отдает JSON')]
-    public function testCheckNewOrdersToolRssFallbackAndErrorHandling(): void
+    #[TestDox('CheckNewOrdersTool, фоллбек на RSS, NotifyOrderTool и MarkOrderTool: при сбое сессионного фильтра переключается на RSS, рендерит шаблон fl.plate.php и обновляет статус')]
+    public function testCheckNewOrdersToolRssFallbackAndNotifyAndMarkTools(): void
     {
         $rssXml = '<?xml version="1.0" encoding="UTF-8"?>
             <rss version="2.0"><channel>
@@ -167,7 +167,16 @@ class FLTest extends TestCase
             }
         };
 
+        $sentHtml = '';
+        $tgMock = $this->createStub(TelegramClient::class);
+        $tgMock->config = $this->container->get('clients')[TelegramClient::class];
+        $tgMock->method('notify')->willReturnCallback(function(string $text) use (&$sentHtml): Response
+        {
+            $sentHtml = $text; return new Response(200, [], '{"ok":true}');
+        });
+
         $this->container->add(FLClient::class, $client);
+        $this->container->add(TelegramClient::class, $tgMock);
 
         $tool = $this->container->get(CheckNewOrdersTool::class);
         $ok = json_decode($tool->check(), true);
@@ -179,9 +188,23 @@ class FLTest extends TestCase
         $err = json_decode($tool->check(), true);
         $this->assertSame('error', $err['status']);
 
+        $notifyTool = $this->container->get(NotifyOrderTool::class);
+        $this->assertSame('success', $notifyTool->notify([
+            'match' => 85,
+            'title' => 'Интеграция 1С и Битрикс24',
+            'link' => 'https://www.fl.ru/projects/2001/integratsiya-bitrix.html',
+            'rate' => '🟢 Выгодно (~40ч)',
+            'summary' => 'Прямое попадание в стек Битрикс24 и 1С.',
+            'budget' => '120 000 ₽',
+            'proposal' => 'Здравствуйте! Готов реализовать обмен <REST>.',
+        ]));
+        $this->assertStringContainsString('<b>💼 Новый заказ на FL.ru — совпадение 85%</b>', $sentHtml);
+        $this->assertStringContainsString('<pre>Здравствуйте! Готов реализовать обмен &lt;REST&gt;.</pre>', $sentHtml);
+
         $markTool = $this->container->get(MarkOrderTool::class);
         $this->assertSame('success', $markTool->mark(2001, true));
         $this->assertTrue(FLOrder::where('project_id', 2001)->first()->published);
+
         $this->assertSame('success', $markTool->mark(2001, false));
         $this->assertFalse(FLOrder::where('project_id', 2001)->first()->published);
         $this->assertSame('not found', $markTool->mark(999999, true));

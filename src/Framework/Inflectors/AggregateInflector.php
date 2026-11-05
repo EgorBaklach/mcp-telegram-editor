@@ -31,7 +31,7 @@ class AggregateInflector implements AggregateInflectorInterface
         yield from $this->inflectors;
     }
 
-    public function inflect($object)
+    public function inflect(mixed $object): mixed
     {
         if(!is_object($object)) return $object;
 

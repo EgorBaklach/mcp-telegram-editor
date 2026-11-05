@@ -2,5 +2,5 @@
 
 interface ObserverInterface
 {
-    public function update(mixed $payload = null): bool;
+    public function update(mixed ...$payload): bool;
 }

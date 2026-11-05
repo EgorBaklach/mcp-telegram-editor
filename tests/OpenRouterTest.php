@@ -78,7 +78,7 @@ class OpenRouterTest extends TestCase
             ],
         ]);
 
-        $mock = $this->createMock(OpenRouterClient::class);
+        $mock = $this->createStub(OpenRouterClient::class);
         $mock->method('models')->willReturn(new Response(200, [], $payload));
         $this->container->add(OpenRouterClient::class, $mock);
 

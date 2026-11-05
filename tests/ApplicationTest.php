@@ -6,6 +6,7 @@ use Framework\Contracts\Router\RouterInterface;
 use Illuminate\Database\Capsule\Manager as Capsule;
 use League\Container\DefinitionContainerInterface;
 use League\Container\Exception\ContainerException;
+use League\Plates\Engine as Template;
 use Mcp\Server;
 use PHPUnit\Framework\Attributes\TestDox;
 use Psr\Http\Message\{ResponseFactoryInterface, StreamFactoryInterface};
@@ -21,7 +22,7 @@ class ApplicationTest extends TestCase
     #[TestDox('Контейнер загружает все модульные определения из definitions/*.php и разрешает ключевые сервисы')]
     public function testContainerResolvesCoreServicesAndDefinitions(): void
     {
-        foreach(['agents', 'clients', 'commands', 'database', 'dependencies', 'helpers', 'mcp', 'mixins', 'operators', 'redis', 'sources'] as $key)
+        foreach(['agents', 'clients', 'commands', 'database', 'dependencies', 'helpers', 'mcp', 'mixins', 'operators', 'redis', 'sources', 'template'] as $key)
         {
             $this->assertTrue($this->container->has($key), "Определение {$key} должно быть загружено из definitions/{$key}.php");
             $this->assertIsArray($this->container->get($key));
@@ -33,6 +34,7 @@ class ApplicationTest extends TestCase
         $this->assertInstanceOf(ResponseFactoryInterface::class, $this->container->get(ResponseFactoryInterface::class));
         $this->assertInstanceOf(RouterInterface::class, $this->container->get(RouterInterface::class));
         $this->assertInstanceOf(ConsoleInterface::class, $this->container->get(ConsoleInterface::class));
+        $this->assertInstanceOf(Template::class, $this->container->get(Template::class));
         $this->assertInstanceOf(Capsule::class, $this->container->get(Capsule::class));
         $this->assertInstanceOf(Server::class, $this->container->get(Server::class));
     }

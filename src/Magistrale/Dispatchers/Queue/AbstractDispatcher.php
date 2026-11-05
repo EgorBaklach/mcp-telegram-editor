@@ -14,6 +14,4 @@ abstract class AbstractDispatcher implements DispatcherInterface, MacroableInter
     {
         $this->config = $this->container->get('queue');
     }
-
-    abstract public function dispatch(mixed $payload = null): bool;
 }

@@ -2,8 +2,7 @@
 
 use App\Dispatchers\Source\AbstractDispatcher as SourceDispatcher;
 use Cli\Commands\AbstractCommand;
-use Magistrale\Dispatchers\Migration\AbstractDispatcher as MigrationDispatcher;
-use Magistrale\Helpers\{ArrayHelper, TemplateHelper};
+use Magistrale\Helpers\ArrayHelper;
 
 return [
     AbstractCommand::class => [
@@ -11,8 +10,5 @@ return [
     ],
     SourceDispatcher::class => [
         ArrayHelper::class,
-    ],
-    MigrationDispatcher::class => [
-        TemplateHelper::class,
     ],
 ];

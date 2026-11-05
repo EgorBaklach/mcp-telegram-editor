@@ -4,6 +4,7 @@ use App\Dispatchers\Telegram\AbstractDispatcher;
 use App\Observers\AbstractObserver;
 use Closure;
 use Magistrale\Contracts\MixinInterface;
+use Throwable;
 
 class TelegramMixin implements MixinInterface
 {
@@ -33,19 +34,19 @@ class TelegramMixin implements MixinInterface
 
     public function prepare(): Closure
     {
-        return function(mixed $payload = null): string
+        return function(mixed $payload = null, ?array $data = null): string
         {
             /** @var AbstractObserver $this */
 
-            foreach($this->client->config['templates'] as $type => $template)
+            if($payload instanceof Throwable)
             {
-                if($payload instanceof $type)
-                {
-                    return sprintf($template, $payload::class, basename($payload->getFile()), $payload->getLine(), htmlspecialchars($payload->getMessage(), ENT_QUOTES | ENT_HTML5, 'UTF-8'));
-                }
+                return $this->template->render('exception', [
+                    'message' => $payload->getMessage(),
+                    'e' => $payload
+                ]);
             }
 
-            return (string) $payload;
+            return $data ? $this->template->render($payload, $data) : (string) $payload;
         };
     }
 }

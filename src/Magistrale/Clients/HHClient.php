@@ -12,11 +12,6 @@ class HHClient extends AbstractClient
         ]);
     }
 
-    public function vacancy(string $uri): ?ResponseInterface
-    {
-        return $this->resolve('get', $uri);
-    }
-
     public function rss(): ?ResponseInterface
     {
         return $this->resolve('get', 'search/vacancy/rss', [

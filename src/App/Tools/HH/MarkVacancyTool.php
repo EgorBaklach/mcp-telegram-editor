@@ -8,9 +8,9 @@ final class MarkVacancyTool
 {
     public function __construct(private readonly Capsule $capsule) {}
 
-    public function mark(int $vacancyId, bool $published): string
+    public function mark(int $vacancyId, bool $published = true): string
     {
-        if($vacancyId <= 0) throw new InvalidArgumentException('$vacancyId must be positive');
+        if($vacancyId <= 0) throw new InvalidArgumentException('$vacancyId must be a positive integer');
 
         return HHVacancy::where('vacancy_id', $vacancyId)->update(['published' => $published]) ? 'success' : 'not found';
     }

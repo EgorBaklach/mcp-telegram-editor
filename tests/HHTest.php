@@ -2,11 +2,11 @@
 
 use App\Dispatchers\Source\HHDispatcher;
 use App\Models\HHVacancy;
-use App\Tools\HH\{CheckNewVacanciesTool, MarkVacancyTool};
+use App\Tools\HH\{CheckNewVacanciesTool, MarkVacancyTool, NotifyVacancyTool};
 use GuzzleHttp\Psr7\Response;
 use Illuminate\Database\Capsule\Manager as Capsule;
 use InvalidArgumentException;
-use Magistrale\Clients\HHClient;
+use Magistrale\Clients\{HHClient, TelegramClient};
 use PHPUnit\Framework\Attributes\TestDox;
 use Psr\Http\Message\ResponseInterface;
 
@@ -148,7 +148,7 @@ class HHTest extends TestCase
             ->method('vacancies')
             ->willReturn(new Response(200, [], $catalogHtml));
         $mock->expects($this->exactly(3))
-            ->method('vacancy')
+            ->method('detail')
             ->willReturnCallback(fn(string $uri) => match(true)
             {
                 str_contains($uri, '1004') => new Response(200, [], $shortDetailHtml),
@@ -181,8 +181,8 @@ class HHTest extends TestCase
         $this->assertNull(HHVacancy::where('vacancy_id', 1006)->first()->published);
     }
 
-    #[TestDox('CheckNewVacanciesTool, фоллбек на RSS и MarkVacancyTool: при сбое каталога переключается на RSS и обновляет статус')]
-    public function testCheckNewVacanciesToolRssFallbackAndMarkVacancyTool(): void
+    #[TestDox('CheckNewVacanciesTool, фоллбек на RSS, NotifyVacancyTool и MarkVacancyTool: при сбое каталога переключается на RSS, рендерит шаблон hh.plate.php и обновляет статус')]
+    public function testCheckNewVacanciesToolRssFallbackAndNotifyAndMarkTools(): void
     {
         $rssXml = '<?xml version="1.0" encoding="UTF-8"?>
             <rss version="2.0"><channel>
@@ -219,7 +219,16 @@ class HHTest extends TestCase
             }
         };
 
+        $sentHtml = '';
+        $tgMock = $this->createStub(TelegramClient::class);
+        $tgMock->config = $this->container->get('clients')[TelegramClient::class];
+        $tgMock->method('notify')->willReturnCallback(function(string $text) use (&$sentHtml): Response
+        {
+            $sentHtml = $text; return new Response(200, [], '{"ok":true}');
+        });
+
         $this->container->add(HHClient::class, $client);
+        $this->container->add(TelegramClient::class, $tgMock);
 
         $tool = $this->container->get(CheckNewVacanciesTool::class);
         $ok = json_decode($tool->check(), true);
@@ -233,9 +242,26 @@ class HHTest extends TestCase
         $err = json_decode($tool->check(), true);
         $this->assertSame('error', $err['status']);
 
+        $notifyTool = $this->container->get(NotifyVacancyTool::class);
+        $this->assertSame('success', $notifyTool->notify([
+            'match' => 90,
+            'title' => 'Senior PHP / Laravel Developer',
+            'link' => 'https://ekaterinburg.hh.ru/vacancy/2001',
+            'rate' => '🟢 Выгодно',
+            'summary' => 'Отличное совпадение по Laravel и PostgreSQL.',
+            'company' => 'Контур',
+            'address' => 'Екатеринбург',
+            'schedule' => '{REMOTE}',
+            'salary' => 'от 200 000 до 280 000 ₽',
+            'proposal' => 'Добрый день! Опыт коммерческой разработки на PHP > 6 лет.',
+        ]));
+        $this->assertStringContainsString('<b>🏢 Новая вакансия на HH.ru — совпадение 90%</b>', $sentHtml);
+        $this->assertStringContainsString('<pre>Добрый день! Опыт коммерческой разработки на PHP &gt; 6 лет.</pre>', $sentHtml);
+
         $markTool = $this->container->get(MarkVacancyTool::class);
         $this->assertSame('success', $markTool->mark(2001, true));
         $this->assertTrue(HHVacancy::where('vacancy_id', 2001)->first()->published);
+
         $this->assertSame('success', $markTool->mark(2001, false));
         $this->assertFalse(HHVacancy::where('vacancy_id', 2001)->first()->published);
         $this->assertSame('not found', $markTool->mark(999999, true));

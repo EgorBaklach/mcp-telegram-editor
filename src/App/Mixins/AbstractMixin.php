@@ -43,4 +43,12 @@ abstract class AbstractMixin implements MixinInterface
             return trim(preg_replace($multiline ? '/[ \t]+/u' : '/\s+/u', ' ', $decoded));
         };
     }
+
+    abstract public function catalog(): Closure;
+
+    abstract public function rss(): Closure;
+
+    abstract public function description(): Closure;
+
+    abstract public function preview(): Closure;
 }

@@ -16,6 +16,11 @@ abstract class AbstractClient extends Client implements ClientInterface, Observa
         parent::__construct($config);
     }
 
+    public function detail(string $uri): ?ResponseInterface
+    {
+        return $this->resolve('get', $uri);
+    }
+
     protected function resolve(string $method, string $uri, array $options = []): ?ResponseInterface
     {
         try

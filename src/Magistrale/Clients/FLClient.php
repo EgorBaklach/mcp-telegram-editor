@@ -17,11 +17,6 @@ class FLClient extends AbstractClient
         ]);
     }
 
-    public function project(string $uri): ?ResponseInterface
-    {
-        return $this->resolve('get', $uri);
-    }
-
     public function rss(): ?ResponseInterface
     {
         return $this->resolve('get', 'rss/all.xml');

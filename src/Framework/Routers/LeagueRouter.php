@@ -18,7 +18,7 @@ class LeagueRouter implements RouterInterface, RouteCollectionInterface
         $this->router = new Router();
     }
 
-    public function map(string $method, string $path, mixed $handler): Route
+    public function map(string|array $method, string $path, mixed $handler): Route
     {
         return $this->router->map($method, $path, $handler);
     }
