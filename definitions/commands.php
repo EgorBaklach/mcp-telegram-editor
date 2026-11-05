@@ -1,6 +1,8 @@
 <?php
 
-use Cli\Commands\{HelloWorldCommand, MigrateCommand, QueueManagerCommand, SourceMonitorCommand};
+use App\Dispatchers\Source\ReportDispatcher;
+use App\Models\{FLOrder, HHVacancy, OpenRouterModel};
+use Cli\Commands\{HelloWorldCommand, MigrateCommand, QueueManagerCommand, SourceMonitorCommand, SourceReportCommand};
 use Magistrale\Dispatchers\Migration\{CreateDispatcher, DownDispatcher, UpDispatcher};
 use Magistrale\Dispatchers\Queue\{ClearDispatcher, RemoveDispatcher, StatusDispatcher, SwitchDispatcher, WorkDispatcher};
 use Symfony\Component\Console\Input\InputOption;
@@ -54,15 +56,25 @@ return [
     SourceMonitorCommand::class => [
         'openrouter' => [
             'option' => [null, InputOption::VALUE_OPTIONAL, 'Запустить мониторинг бесплатных AI-моделей OpenRouter через указанного агента (например, --openrouter=agy)', false],
+            'model' => OpenRouterModel::class,
             'lock' => 'lock:source:openrouter',
         ],
         'fl' => [
             'option' => [null, InputOption::VALUE_OPTIONAL, 'Запустить мониторинг новых заказов FL.ru через указанного агента (например, --fl=agy)', false],
+            'model' => FLOrder::class,
             'lock' => 'lock:source:fl',
         ],
         'hh' => [
             'option' => [null, InputOption::VALUE_OPTIONAL, 'Запустить мониторинг новых вакансий HH.ru через указанного агента (например, --hh=agy)', false],
+            'model' => HHVacancy::class,
             'lock' => 'lock:source:hh',
+        ],
+    ],
+    SourceReportCommand::class => [
+        'daily' => [
+            'option' => [null, InputOption::VALUE_NONE, 'Сформировать и отправить сводный отчёт мониторинга источников за 24 часа'],
+            'dispatcher' => ReportDispatcher::class,
+            'lock' => 'lock:source:report',
         ],
     ],
 ];

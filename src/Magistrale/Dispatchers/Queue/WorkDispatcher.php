@@ -1,7 +1,7 @@
 <?php namespace Magistrale\Dispatchers\Queue;
 
 use Framework\Contracts\Console\ConsoleInterface;
-use Symfony\Component\Console\Input\ArrayInput;
+use Symfony\Component\Console\Input\StringInput;
 use Throwable;
 
 class WorkDispatcher extends AbstractDispatcher
@@ -19,9 +19,9 @@ class WorkDispatcher extends AbstractDispatcher
 
             try
             {
-                [$option, $agent] = array_pad(explode(':', $job, 2), 2, null);
+                [$command, $args] = array_pad(explode(' ', $job, 2), 2, '');
 
-                $this->container->get(ConsoleInterface::class)->get($this->config['command'])->run(new ArrayInput(['--'.$option => $agent]), $this->logger->getOutput());
+                $this->container->get(ConsoleInterface::class)->get($command)->run(new StringInput($args), $this->logger->getOutput());
             }
             catch(Throwable $e)
             {

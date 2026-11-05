@@ -13,19 +13,17 @@
  * @var string  $link     Прямая ссылка на страницу вакансии на HH.ru
  */
 ?>
-<b>🏢 Новая вакансия на HH.ru — совпадение <?php echo $match ?>%</b>
-
-<b>Вакансия:</b> <?php echo $title.PHP_EOL ?>
-<b>Компания:</b> <?php echo ($company ?? '-').PHP_EOL ?>
-<b>Локация:</b> <?php echo ($address ?? '-').PHP_EOL ?>
-<b>Формат работы:</b> <?php echo ($schedule ?? '-').PHP_EOL ?>
-<b>Зарплата:</b> <?php echo ($salary ?? '-').PHP_EOL ?>
-<b>Оценка оффера (от 150 000 ₽ / 1 500 ₽/ч):</b> <?php echo $rate.PHP_EOL ?>
-
-<?php echo $summary.PHP_EOL ?>
+<b>🏢 Новая вакансия на HH.ru — совпадение <?php echo $match ?>%</b><br><br>
+<b>Вакансия:</b> <?php echo $title ?><br>
+<b>Компания:</b> <?php echo $company ?? '-' ?><br>
+<b>Локация:</b> <?php echo $address ?? '-' ?><br>
+<b>Формат работы:</b> <?php echo $schedule ?? '-' ?><br>
+<b>Зарплата:</b> <?php echo $salary ?? '-' ?><br>
+<b>Оценка оффера (от 150 000 ₽ / 1 500 ₽/ч):</b> <?php echo $rate ?><br><br>
+<?php echo $summary ?><br>
 <?php if($proposal ?? null): ?>
-
 <pre><?php echo $proposal ?></pre>
+<?php else: ?>
+<br>
 <?php endif ?>
-
 <a href="<?php echo $link ?>">Открыть вакансию на HH.ru</a>

@@ -20,6 +20,8 @@ abstract class AbstractCommand extends Command implements CommandInterface, Macr
 
     public InputInterface $input;
 
+    public array $commands = [];
+
     public array $configs = [];
 
     public function setContainer(DefinitionContainerInterface $container): self
@@ -29,10 +31,12 @@ abstract class AbstractCommand extends Command implements CommandInterface, Macr
 
     public function construct(): void
     {
-        $this->configs = $this->callback->array('get', $this->container->get('commands'), static::class);   
+        $this->commands = $this->container->get('commands');
+
+        $this->configs = $this->callback->array('get', $this->commands, static::class);
 
         $this->logger = $this->container->get(ConsoleLoggerInterface::class);
-        
+
         $this->redis = $this->container->get(RedisInterface::class);
 
         foreach($this->configs as $name => $config) $this->addOption($name, ...$config['option']);

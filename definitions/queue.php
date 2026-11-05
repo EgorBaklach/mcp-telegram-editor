@@ -1,7 +1,6 @@
 <?php
 
 return [
-    'command' => 'source:monitor',
     'ttl' => (int) (getenv('REDIS_LOCK_TTL') ?: 660),
     'keys' => [
         'pending' => 'queue:pending',
@@ -9,8 +8,9 @@ return [
         'paused' => 'queue:paused',
     ],
     'schedules' => [
-        'openrouter:agy' => '0 */6 * * *',
-        'fl:agy' => '@15minutes',
-        'hh:agy' => '@15minutes',
+        'source:monitor --openrouter=agy' => '0 */6 * * *',
+        'source:monitor --fl=agy' => '@15minutes',
+        'source:monitor --hh=agy' => '@15minutes',
+        'source:report --daily' => '0 18 * * *',
     ],
 ];

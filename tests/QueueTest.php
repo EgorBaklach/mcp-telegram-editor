@@ -46,7 +46,7 @@ class QueueTest extends TestCase
 
     private function cleanupRedis(): void
     {
-        foreach(['queue:pending', 'queue:active', 'queue:paused', 'lock:queue:work', 'lock:queue:status', 'lock:queue:switch', 'lock:queue:remove', 'lock:queue:clear', 'lock:source:openrouter', 'lock:source:fl', 'lock:source:hh'] as $key)
+        foreach(['queue:pending', 'queue:active', 'queue:paused', 'lock:queue:work', 'lock:queue:status', 'lock:queue:switch', 'lock:queue:remove', 'lock:queue:clear', 'lock:source:openrouter', 'lock:source:fl', 'lock:source:hh', 'lock:source:report'] as $key)
         {
             $this->redis->unlock($key);
         }
@@ -133,27 +133,27 @@ class QueueTest extends TestCase
 
         $this->container->add(AgyAgent::class, $agent);
 
-        $this->dispatcher->cron('0 */6 * * *', mktime(6, 0, 0, 10, 29, 2026))?->push('openrouter:agy');
-        $this->dispatcher->push('invalid:agy');
-        $this->dispatcher->push('fl:agy');
-        $this->dispatcher->push('hh:agy');
-        $this->assertSame(['openrouter:agy', 'invalid:agy', 'fl:agy', 'hh:agy'], $this->dispatcher->pending());
+        $this->dispatcher->cron('0 */6 * * *', mktime(6, 0, 0, 10, 29, 2026))?->push('source:monitor --openrouter=agy');
+        $this->dispatcher->push('source:monitor --invalid=agy');
+        $this->dispatcher->push('source:monitor --fl=agy');
+        $this->dispatcher->push('source:monitor --hh=agy');
+        $this->assertSame(['source:monitor --openrouter=agy', 'source:monitor --invalid=agy', 'source:monitor --fl=agy', 'source:monitor --hh=agy'], $this->dispatcher->pending());
 
         $output = new BufferedOutput();
         $this->assertSame(Command::SUCCESS, $this->command->run(new ArrayInput(['--work' => true]), $output));
 
-        $this->assertSame(['openrouter:agy'], $executed);
+        $this->assertSame(['source:monitor --openrouter=agy'], $executed);
         $this->assertNull($this->redis->command(['GET', $this->dispatcher->config['keys']['active']]));
-        $this->assertSame(['invalid:agy', 'fl:agy', 'hh:agy'], $this->dispatcher->pending());
+        $this->assertSame(['source:monitor --invalid=agy', 'source:monitor --fl=agy', 'source:monitor --hh=agy'], $this->dispatcher->pending());
 
         $this->assertSame(Command::SUCCESS, $this->command->run(new ArrayInput(['--work' => true]), $output));
         $this->assertStringContainsString('Очередь поставлена на паузу', $output->fetch());
-        $this->assertSame(['invalid:agy', 'fl:agy', 'hh:agy'], $this->dispatcher->pending());
+        $this->assertSame(['source:monitor --invalid=agy', 'source:monitor --fl=agy', 'source:monitor --hh=agy'], $this->dispatcher->pending());
 
         $this->redis->unlock($this->dispatcher->config['keys']['paused']);
         $this->assertSame(Command::SUCCESS, $this->command->run(new ArrayInput(['--work' => true]), $output));
-        $this->assertStringContainsString('Ошибка выполнения задачи invalid:agy', $output->fetch());
-        $this->assertSame(['openrouter:agy', 'fl:agy', 'hh:agy'], $executed);
+        $this->assertStringContainsString('Ошибка выполнения задачи source:monitor --invalid=agy', $output->fetch());
+        $this->assertSame(['source:monitor --openrouter=agy', 'source:monitor --fl=agy', 'source:monitor --hh=agy'], $executed);
         $this->assertSame([], $this->dispatcher->pending());
     }
 }

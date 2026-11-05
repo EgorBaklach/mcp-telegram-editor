@@ -75,14 +75,15 @@ docker exec mcp-telegram-editor php bin/console.php db:migrate --new=TableName
 * **Модель Migration**: История миграций хранится в БД и управляется через Eloquent модель `Magistrale\Models\Migration` с полями `id`, `migration`, `batch`.
 * **Файловая система и логирование**: Используется `symfony/filesystem` и единый `ConsoleLoggerInterface` (`ConsoleLogger`).
 
-### 2. Мониторинг внешних источников (`source:monitor`)
+### 2. Мониторинг внешних источников и сводный отчёт (`source:monitor`, `source:report`)
 ```bash
 docker exec mcp-telegram-editor php bin/console.php source:monitor --openrouter=agy
 docker exec mcp-telegram-editor php bin/console.php source:monitor --fl=agy
 docker exec mcp-telegram-editor php bin/console.php source:monitor --hh=agy
 docker exec mcp-telegram-editor php bin/console.php source:monitor --openrouter=hermes
+docker exec mcp-telegram-editor php bin/console.php source:report --daily
 ```
-* **Команда мониторинга**: `Cli\Commands\SourceMonitorCommand` переопределяет метод `handle()` базового `AbstractCommand` и уведомляет об ошибках через `TelegramObserver` (`ObservableInterface`).
+* **Команды мониторинга и отчётности**: `Cli\Commands\SourceMonitorCommand` и `Cli\Commands\SourceReportCommand` (`App\Dispatchers\Source\ReportDispatcher` + `storage/app/templates/report.plate.php`) переопределяют метод `handle()` базового `AbstractCommand` и взаимодействуют с Telegram через `TelegramObserver` (`ObservableInterface`).
 * **Защита от гонок (Redis Lock)**: Перед выполнением любой опции в `AbstractCommand::execute()` захватывается атомарный распределённый лок из `definitions/commands.php` через `RedisInterface` (`Magistrale\Providers\RedisProvider` + `RedisMixin::encode()`, `SET key 1 NX EX ttl` по прямому TCP RESP-протоколу с поддержкой рекурсивного чтения массивов `*`) и гарантированно освобождается в блоке `finally`.
 * **Драйверы AI-агентов (`Magistrale\Agents`)**: Реализуют `AgentInterface` и настраиваются в `definitions/agents.php`:
   * `AgyAgent` — создаёт изолированный эфемерный каталог `HOME` в `/tmp/agy-home-{source}`, прокидывает симлинки конфигурации и запускает процесс `agy`, удаляя временный `HOME` по завершении.
@@ -93,21 +94,21 @@ docker exec mcp-telegram-editor php bin/console.php source:monitor --openrouter=
 docker exec mcp-telegram-editor php bin/console.php queue:manager --work
 docker exec mcp-telegram-editor php bin/console.php queue:manager --status
 docker exec mcp-telegram-editor php bin/console.php queue:manager --switch
-docker exec mcp-telegram-editor php bin/console.php queue:manager --remove=fl:agy
+docker exec mcp-telegram-editor php bin/console.php queue:manager --remove="source:monitor --fl=agy"
 docker exec mcp-telegram-editor php bin/console.php queue:manager --clear
 ```
-* **Команда и конфигурация**: `Cli\Commands\QueueManagerCommand` и плоский конфиг `definitions/queue.php` (`command`, `ttl`, `keys`, `schedules` с поддержкой крон-выражений и макросов `@15minutes` через `adhocore/cron-expr`).
-* **Миксин и диспетчеры (`src/Magistrale/Dispatchers/Queue/`)**: `QueueMixin` предоставляет переиспользуемые методы `cron()`, `pending()`, `push()` (с O(1) дедупликацией через `array_flip()`) и `state()`, а предметные диспетчеры (`WorkDispatcher`, `StatusDispatcher`, `SwitchDispatcher`, `RemoveDispatcher`, `ClearDispatcher`) управляют FIFO-очередью Redis, продлением лока воркера и последовательным запуском задач без наложения процессов `agy` в памяти.
+* **Команда и конфигурация**: `Cli\Commands\QueueManagerCommand` и плоский конфиг `definitions/queue.php` (`ttl`, `keys`, `schedules` с полными CLI-строками задач и поддержкой крон-выражений и макросов `@15minutes` через `adhocore/cron-expr`).
+* **Миксин и диспетчеры (`src/Magistrale/Dispatchers/Queue/`)**: `QueueMixin` предоставляет переиспользуемые методы `cron()`, `pending()`, `push()` (с O(1) дедупликацией через `array_flip()`) и `state()`, а предметные диспетчеры (`WorkDispatcher`, `StatusDispatcher`, `SwitchDispatcher`, `RemoveDispatcher`, `ClearDispatcher`) управляют FIFO-очередью Redis, продлением лока воркера и последовательным запуском задач через `StringInput` без наложения процессов `agy` в памяти.
 
 ---
 
 ## 🧪 Тестирование и Среда разработки (LSP/IDE)
 
-* Запуск всех тестов (`31 tests, 234 assertions`):
+* Запуск всех тестов (`32 tests, 241 assertions`):
   ```bash
   docker exec mcp-telegram-editor vendor/bin/phpunit --testdox
   ```
-* Покрытие включает: `ApplicationTest` (DI-контейнер, `TemplateProvider` и система миксинов), `HttpTest` (CORS и стратегии ответов), `DatabaseMigrationTest` (Eloquent и все сценарии `db:migrate`, включая защиту от невалидных целей), `TelegramTest` (все 7 инструментов включая `notify`, `TelegramObserver`, откат транзакций при сетевых сбоях и экранирование спецсимволов `ILIKE`), `OpenRouterTest` (`OpenRouterDispatcher`, `ingest` через `ON CONFLICT DO NOTHING RETURNING`, NAT64 failover и живые уведомления `TelegramObserver`), `FLTest` (`FLDispatcher`, `FLOperator`, `FLMixin`, `CheckNewOrdersTool`, `NotifyOrderTool`, `MarkOrderTool`, дедупликация по `hash`, фильтрация мелких задач, RSS-фоллбек и живые уведомления `TelegramObserver` о перехваченных HTTP-сбоях), `HHTest` (`HHDispatcher`, `HHOperator`, `HHMixin`, `CheckNewVacanciesTool`, `NotifyVacancyTool`, `MarkVacancyTool`, парсинг `HH-Lux-InitialState`, склейка мультирегиональных клонов в `address`, `hh_schedule[]` и RSS-фоллбек), `SourceMonitorTest` (Redis-локи, жизненный цикл эфемерного `HOME`, уведомления об ошибках агента и коды возврата CLI для `--openrouter`, `--fl` и `--hh`) и `QueueTest` (`QueueMixin::cron` с макросами `adhocore/cron-expr`, дедупликация `push`, чтение RESP-массивов, управление через `--status`/`--switch`/`--remove`/`--clear` и строго последовательное FIFO-выполнение в `WorkDispatcher`).
+* Покрытие включает: `ApplicationTest` (DI-контейнер, `TemplateProvider` и система миксинов), `HttpTest` (CORS и стратегии ответов), `DatabaseMigrationTest` (Eloquent и все сценарии `db:migrate`, включая защиту от невалидных целей), `TelegramTest` (все 7 инструментов включая `notify`, `TelegramObserver`, откат транзакций при сетевых сбоях и экранирование спецсимволов `ILIKE`), `OpenRouterTest` (`OpenRouterDispatcher`, `ingest` через `ON CONFLICT DO NOTHING RETURNING`, NAT64 failover и живые уведомления `TelegramObserver`), `FLTest` (`FLDispatcher`, `FLOperator`, `FLMixin`, `CheckNewOrdersTool`, `NotifyOrderTool`, `MarkOrderTool`, дедупликация по `hash`, фильтрация мелких задач, RSS-фоллбек и живые уведомления `TelegramObserver` о перехваченных HTTP-сбоях), `HHTest` (`HHDispatcher`, `HHOperator`, `HHMixin`, `CheckNewVacanciesTool`, `NotifyVacancyTool`, `MarkVacancyTool`, парсинг `HH-Lux-InitialState`, склейка мультирегиональных клонов в `address`, `hh_schedule[]` и RSS-фоллбек), `SourceMonitorTest` (Redis-локи, жизненный цикл эфемерного `HOME`, уведомления об ошибках агента, коды возврата CLI для `--openrouter`, `--fl` и `--hh`, а также сводный 24-часовой отчёт `source:report --daily` через `ReportDispatcher`) и `QueueTest` (`QueueMixin::cron` с макросами `adhocore/cron-expr`, дедупликация `push`, чтение RESP-массивов, управление через `--status`/`--switch`/`--remove`/`--clear` и строго последовательное FIFO-выполнение в `WorkDispatcher`).
 * Для помощи LSP/IDE (Intelephense) используется файл `_ide_helper.php`:
   * **Обязательное пополнение для миксинов**: При создании новых миксинов (`src/Magistrale/Mixins/*Mixin.php` и `src/App/Mixins/*Mixin.php`) агент обязан автоматически дополнять `_ide_helper.php` соответствующими `@method`-аннотациями на целевом классе, чтобы избежать предупреждений LSP (`Undefined method`).
   * В остальных случаях (вне системы миксинов) дополнять `_ide_helper.php` заглушками можно только по прямому запросу пользователя.

@@ -1,7 +1,11 @@
 <?php namespace Tests;
 
-use Cli\Commands\SourceMonitorCommand;
+use App\Dispatchers\Source\ReportDispatcher;
+use App\Models\{FLOrder, HHVacancy, OpenRouterModel};
+use Cli\Commands\{SourceMonitorCommand, SourceReportCommand};
+use Illuminate\Database\Capsule\Manager as Capsule;
 use League\Container\DefinitionContainerInterface;
+use League\Plates\Engine as Template;
 use Magistrale\Agents\{AgyAgent, HermesAgent};
 use Magistrale\Contracts\RedisInterface;
 use PHPUnit\Framework\Attributes\TestDox;
@@ -28,6 +32,7 @@ class SourceMonitorTest extends TestCase
         $this->redis->unlock('lock:source:openrouter');
         $this->redis->unlock('lock:source:fl');
         $this->redis->unlock('lock:source:hh');
+        $this->redis->unlock('lock:source:report');
         $this->redis->unlock('lock:source:test');
 
         $this->command = $this->container->get(SourceMonitorCommand::class);
@@ -41,6 +46,7 @@ class SourceMonitorTest extends TestCase
         $this->redis->unlock('lock:source:openrouter');
         $this->redis->unlock('lock:source:fl');
         $this->redis->unlock('lock:source:hh');
+        $this->redis->unlock('lock:source:report');
         $this->redis->unlock('lock:source:test');
         parent::tearDown();
     }
@@ -156,5 +162,58 @@ class SourceMonitorTest extends TestCase
 
         $this->assertSame(Command::SUCCESS, $this->command->run(new ArrayInput(['--openrouter' => 'hermes']), $output));
         $this->assertInstanceOf(HermesAgent::class, $this->container->get(HermesAgent::class));
+    }
+
+    #[TestDox('SourceReportCommand и ReportDispatcher: агрегируют 24-часовую воронку из БД и отправляют сводный отчёт по шаблону report.plate.php')]
+    public function testSourceReportCommandAndReportDispatcherFunnel(): void
+    {
+        $capsule = $this->container->get(Capsule::class);
+        $capsule->getConnection()->beginTransaction();
+
+        try
+        {
+            OpenRouterModel::query()->delete();
+            FLOrder::query()->delete();
+            HHVacancy::query()->delete();
+
+            OpenRouterModel::insert([
+                ['model_id' => 'v/m1:free', 'name' => 'M1', 'accessible' => 'free', 'published' => true, 'created_at' => date('Y-m-d H:i:s')],
+                ['model_id' => 'v/m2:free', 'name' => 'M2', 'accessible' => 'free', 'published' => true, 'created_at' => date('Y-m-d H:i:s')],
+                ['model_id' => 'v/m3:free', 'name' => 'M3', 'accessible' => 'free', 'published' => false, 'created_at' => date('Y-m-d H:i:s')],
+                ['model_id' => 'v/old:free', 'name' => 'Old', 'accessible' => 'free', 'published' => true, 'created_at' => date('Y-m-d H:i:s', strtotime('-48 hours'))],
+            ]);
+
+            FLOrder::insert([
+                ['project_id' => 101, 'hash' => md5('fl1'), 'title' => 'FL 1', 'link' => 'https://fl.ru/1', 'published' => true, 'created_at' => date('Y-m-d H:i:s')],
+                ['project_id' => 102, 'hash' => md5('fl2'), 'title' => 'FL 2', 'link' => 'https://fl.ru/2', 'published' => false, 'created_at' => date('Y-m-d H:i:s')],
+                ['project_id' => 103, 'hash' => md5('fl3'), 'title' => 'FL 3', 'link' => 'https://fl.ru/3', 'published' => null, 'created_at' => date('Y-m-d H:i:s')],
+            ]);
+
+            HHVacancy::insert([
+                ['vacancy_id' => 201, 'hash' => md5('hh1'), 'title' => 'HH 1', 'link' => 'https://hh.ru/1', 'published' => true, 'created_at' => date('Y-m-d H:i:s')],
+                ['vacancy_id' => 202, 'hash' => md5('hh2'), 'title' => 'HH 2', 'link' => 'https://hh.ru/2', 'published' => null, 'created_at' => date('Y-m-d H:i:s')],
+            ]);
+
+            $reportCommand = $this->container->get(SourceReportCommand::class);
+            $reportCommand->setContainer($this->container)->construct();
+
+            $this->assertSame(Command::SUCCESS, $reportCommand->run(new ArrayInput(['--daily' => true]), new NullOutput()));
+
+            $dispatcher = $this->container->get(ReportDispatcher::class);
+            $this->assertSame(['total' => 3, 'published' => 2], $openrouter = $dispatcher->callback->report('funnel', OpenRouterModel::class));
+            $this->assertSame(['total' => 3, 'published' => 1], $fl = $dispatcher->callback->report('funnel', FLOrder::class));
+            $this->assertSame(['total' => 2, 'published' => 1], $hh = $dispatcher->callback->report('funnel', HHVacancy::class));
+
+            $rendered = $this->container->get(Template::class)->render('report', ['sources' => ['openrouter' => $openrouter, 'fl' => $fl, 'hh' => $hh]]);
+            $this->assertStringContainsString('<b>🔹 OPENROUTER:</b><br>', $rendered);
+            $this->assertStringContainsString('• Найдено за сутки: <b>3</b><br>', $rendered);
+            $this->assertStringContainsString('• Опубликовано: <b>2</b><br>', $rendered);
+        }
+        finally
+        {
+            if($capsule->getConnection()->transactionLevel() > 0) $capsule->getConnection()->rollBack();
+
+            $capsule->getConnection()->disconnect();
+        }
     }
 }
